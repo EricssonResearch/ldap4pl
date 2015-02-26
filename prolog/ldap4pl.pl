@@ -2,7 +2,8 @@
     ldap_initialize/2,
     ldap_unbind/1,
     ldap_unbind_ext/3,
-    ldap_bind/4
+    ldap_bind/4,
+    ldap_bind_s/4
 ]).
 
 :- use_foreign_library(foreign(ldap4pl)).
@@ -18,3 +19,6 @@ ldap_unbind_ext(LDAP, SCTRLS, CCTRLS) :-
 
 ldap_bind(LDAP, WHO, CRED, METHOD) :-
     ldap4pl_bind(LDAP, WHO, CRED, METHOD).
+
+ldap_bind_s(LDAP, WHO, CRED, METHOD) :-
+    ldap4pl_bind_s(LDAP, WHO, CRED, METHOD).

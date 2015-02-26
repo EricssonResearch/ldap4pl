@@ -287,9 +287,38 @@ static foreign_t ldap4pl_bind(term_t ldap_t, term_t who_t, term_t cred_t, term_t
     return !ldap_bind(ldap, who, cred, method_int);
 }
 
+static foreign_t ldap4pl_bind_s(term_t ldap_t, term_t who_t, term_t cred_t, term_t method_t) {
+    LDAP* ldap;
+    if (!PL_get_pointer(ldap_t, (void**) &ldap)) {
+        return PL_type_error("pointer", ldap_t);
+    }
+
+    char* method;
+    if (!PL_get_atom_chars(method_t, &method)) {
+        return PL_type_error("atom", method_t);
+    }
+
+    int method_int;
+    if (!map_auth_method(method, &method_int)) {
+        return PL_domain_error("valid method required", method_t);
+    }
+
+    char* who;
+    if (!PL_get_atom_chars(who_t, &who)) {
+        return PL_type_error("atom", who_t);
+    }
+    char* cred;
+    if (!PL_get_atom_chars(cred_t, &cred)) {
+        return PL_type_error("atom", cred_t);
+    }
+
+    return !ldap_bind_s(ldap, who, cred, method_int);
+}
+
 install_t install_ldap4pl() {
     PL_register_foreign("ldap4pl_initialize", 2, ldap4pl_initialize, 0);
     PL_register_foreign("ldap4pl_unbind", 1, ldap4pl_unbind, 0);
     PL_register_foreign("ldap4pl_unbind_ext", 3, ldap4pl_unbind_ext, 0);
     PL_register_foreign("ldap4pl_bind", 4, ldap4pl_bind, 0);
+    PL_register_foreign("ldap4pl_bind_s", 4, ldap4pl_bind_s, 0);
 }
