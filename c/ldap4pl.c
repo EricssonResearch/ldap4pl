@@ -16,6 +16,13 @@
 #define BV_VAL "bv_val"
 #define LDCTL_ISCRITICAL "ldctl_iscritical"
 
+#define AUTH_NONE "auth_none"
+#define AUTH_SIMPLE "auth_simple"
+#define AUTH_SASL "auth_sasl"
+#define AUTH_KRBV4 "auth_krbv4"
+#define AUTH_KRBV41 "auth_krbv41"
+#define AUTH_KRBV42 "auth_krbv42"
+
 void free_LDAPControl_array(LDAPControl** array, int size) {
     for (int i = 0; i < size; ++i) {
         free(array[i]);
@@ -105,7 +112,7 @@ LDAPControl* build_LDAPControl(term_t ctrl_t) {
 
     const char* name = PL_atom_chars(name_t);
     if (strcmp(name, LDAPCONTROL)) {
-        PL_existence_error(LDAPCONTROL, name_t);
+        PL_domain_error(LDAPCONTROL, name_t);
         goto error;
     }
 
@@ -184,6 +191,26 @@ LDAPControl** build_LDAPControl_array(term_t ctrls_t, int* size) {
     return array;
 }
 
+int map_auth_method(char* method, int* method_int) {
+    int result = TRUE;
+    if (!strcmp(method, AUTH_NONE)) {
+        *method_int = LDAP_AUTH_NONE;
+    } else if (!strcmp(method, AUTH_SIMPLE)) {
+        *method_int = LDAP_AUTH_SIMPLE;
+    } else if (!strcmp(method, AUTH_SASL)) {
+        *method_int = LDAP_AUTH_SASL;
+    } else if (!strcmp(method, AUTH_KRBV4)) {
+        *method_int = LDAP_AUTH_KRBV4;
+    } else if (!strcmp(method, AUTH_KRBV41)) {
+        *method_int = LDAP_AUTH_KRBV41;
+    } else if (!strcmp(method, AUTH_KRBV42)) {
+        *method_int = LDAP_AUTH_KRBV42;
+    } else {
+        result = FALSE;
+    }
+    return result;
+}
+
 static foreign_t ldap4pl_initialize(term_t ldap_t, term_t uri_t) {
     char* uri;
     if (!PL_get_atom_chars(uri_t, &uri)) {
@@ -232,8 +259,37 @@ static foreign_t ldap4pl_unbind_ext(term_t ldap_t, term_t sctrls_t, term_t cctrl
     }
 }
 
+static foreign_t ldap4pl_bind(term_t ldap_t, term_t who_t, term_t cred_t, term_t method_t) {
+    LDAP* ldap;
+    if (!PL_get_pointer(ldap_t, (void**) &ldap)) {
+        return PL_type_error("pointer", ldap_t);
+    }
+
+    char* method;
+    if (!PL_get_atom_chars(method_t, &method)) {
+        return PL_type_error("atom", method_t);
+    }
+
+    int method_int;
+    if (!map_auth_method(method, &method_int)) {
+        return PL_domain_error("valid method required", method_t);
+    }
+
+    char* who;
+    if (!PL_get_atom_chars(who_t, &who)) {
+        return PL_type_error("atom", who_t);
+    }
+    char* cred;
+    if (!PL_get_atom_chars(cred_t, &cred)) {
+        return PL_type_error("atom", cred_t);
+    }
+
+    return !ldap_bind(ldap, who, cred, method_int);
+}
+
 install_t install_ldap4pl() {
     PL_register_foreign("ldap4pl_initialize", 2, ldap4pl_initialize, 0);
     PL_register_foreign("ldap4pl_unbind", 1, ldap4pl_unbind, 0);
     PL_register_foreign("ldap4pl_unbind_ext", 3, ldap4pl_unbind_ext, 0);
+    PL_register_foreign("ldap4pl_bind", 4, ldap4pl_bind, 0);
 }
