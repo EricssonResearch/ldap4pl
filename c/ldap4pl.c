@@ -106,7 +106,6 @@ LDAPControl* build_LDAPControl(term_t ctrl_t) {
     const char* name = PL_atom_chars(name_t);
     if (strcmp(name, LDAPCONTROL)) {
         PL_existence_error(LDAPCONTROL, name_t);
-
         goto error;
     }
 
