@@ -43,7 +43,73 @@ int get_list_size(term_t list) {
 /*
  * berval(bv_len(12), bv_val(atom))
  */
-int build_BerValue(term_t berval_t, LDAPControl* ctrl) {
+BerValue* build_BerValue(term_t berval_t) {
+    BerValue* berval = malloc(sizeof (BerValue));
+    memset(berval, 0, sizeof (BerValue));
+
+    atom_t name_t;
+    int arity;
+    if (!PL_get_compound_name_arity(berval_t, &name_t, &arity)) {
+        PL_type_error("compound", berval_t);
+        goto error;
+    }
+
+    for (int i = 1; i <= arity; ++i) {
+        term_t arg_t = PL_new_term_ref();
+        if (!PL_get_arg(i, berval_t, arg_t)) {
+            PL_type_error("compound", berval_t);
+            goto error;
+        }
+
+        atom_t arg_name_t;
+        int arity1;
+        if (!PL_get_compound_name_arity(arg_t, &arg_name_t, &arity1)) {
+            PL_type_error("compound", arg_t);
+            goto error;
+        }
+
+        const char* arg_name = PL_atom_chars(arg_name_t);
+
+        if (!strcmp(arg_name, BV_LEN)) {
+            term_t bv_len_t = PL_new_term_ref();
+            if (!PL_get_arg(1, arg_t, bv_len_t)) {
+                PL_type_error("compound", arg_t);
+                goto error;
+            }
+
+            long bv_len;
+            if (!PL_get_long(bv_len_t, &bv_len)) {
+                PL_type_error("number", bv_len_t);
+                goto error;
+            }
+            berval->bv_len = bv_len;
+        } else if (!strcmp(arg_name, BV_VAL)) {
+            term_t bv_val_t = PL_new_term_ref();
+            if (!PL_get_arg(1, arg_t, bv_val_t)) {
+                PL_type_error("compound", arg_t);
+                goto error;
+            }
+
+            char* bv_val;
+            if (!PL_get_atom_chars(bv_val_t, &bv_val)) {
+                PL_type_error("atom", bv_val_t);
+                goto error;
+            }
+            berval->bv_val = bv_val;
+        }
+    }
+
+    return berval;
+
+error:
+    free(berval);
+    return NULL;
+}
+
+/*
+ * berval(bv_len(12), bv_val(atom))
+ */
+int build_BerValue_for_LDAPControl(term_t berval_t, LDAPControl* ctrl) {
     atom_t name_t;
     int arity;
     if (!PL_get_compound_name_arity(berval_t, &name_t, &arity)) {
@@ -72,7 +138,7 @@ int build_BerValue(term_t berval_t, LDAPControl* ctrl) {
 
             long bv_len;
             if (!PL_get_long(bv_len_t, &bv_len)) {
-                return PL_type_error("atom", bv_len_t);
+                return PL_type_error("number", bv_len_t);
             }
             ctrl->ldctl_value.bv_len = bv_len;
         } else if (!strcmp(arg_name, BV_VAL)) {
@@ -146,7 +212,7 @@ LDAPControl* build_LDAPControl(term_t ctrl_t) {
             }
             ctrl->ldctl_oid = ldctl_oid;
         } else if (!strcmp(arg_name, BERVAL)) {
-            if (!build_BerValue(arg_t, ctrl)) {
+            if (!build_BerValue_for_LDAPControl(arg_t, ctrl)) {
                 goto error;
             }
         } else if (!strcmp(arg_name, LDCTL_ISCRITICAL)) {
@@ -236,6 +302,12 @@ int ldap4pl_unbind_ext0(term_t ldap_t, term_t sctrls_t, term_t cctrls_t, int syn
     LDAPControl** cctrls = build_LDAPControl_array(cctrls_t, &cctrls_size);
 
     if ((!sctrls && sctrls_size) || (!cctrls && cctrls_size)) {
+        if (sctrls) {
+            free_LDAPControl_array(sctrls, sctrls_size);
+        }
+        if (cctrls) {
+            free_LDAPControl_array(cctrls, cctrls_size);
+        }
         return FALSE;
     } else {
         int result;
