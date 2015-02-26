@@ -236,6 +236,15 @@ static foreign_t ldap4pl_unbind(term_t ldap_t) {
     return !ldap_unbind(ldap);
 }
 
+static foreign_t ldap4pl_unbind_s(term_t ldap_t) {
+    LDAP* ldap;
+    if (!PL_get_pointer(ldap_t, (void**) &ldap)) {
+        return PL_type_error("pointer", ldap_t);
+    }
+
+    return !ldap_unbind_s(ldap);
+}
+
 static foreign_t ldap4pl_unbind_ext(term_t ldap_t, term_t sctrls_t, term_t cctrls_t) {
     LDAP* ldap;
     if (!PL_get_pointer(ldap_t, (void**) &ldap)) {
@@ -318,6 +327,7 @@ static foreign_t ldap4pl_bind_s(term_t ldap_t, term_t who_t, term_t cred_t, term
 install_t install_ldap4pl() {
     PL_register_foreign("ldap4pl_initialize", 2, ldap4pl_initialize, 0);
     PL_register_foreign("ldap4pl_unbind", 1, ldap4pl_unbind, 0);
+    PL_register_foreign("ldap4pl_unbind_s", 1, ldap4pl_unbind_s, 0);
     PL_register_foreign("ldap4pl_unbind_ext", 3, ldap4pl_unbind_ext, 0);
     PL_register_foreign("ldap4pl_bind", 4, ldap4pl_bind, 0);
     PL_register_foreign("ldap4pl_bind_s", 4, ldap4pl_bind_s, 0);
