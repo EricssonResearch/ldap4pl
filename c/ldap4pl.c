@@ -509,10 +509,6 @@ static foreign_t ldap4pl_unbind_ext(term_t ldap_t, term_t sctrls_t, term_t cctrl
     return result;
 }
 
-static foreign_t ldap4pl_unbind_ext_s(term_t ldap_t, term_t sctrls_t, term_t cctrls_t) {
-    return ldap4pl_unbind_ext0(ldap_t, sctrls_t, cctrls_t, (term_t) NULL, TRUE);
-}
-
 static foreign_t ldap4pl_bind(term_t ldap_t, term_t who_t, term_t cred_t, term_t method_t, term_t msgid_t) {
     return ldap4pl_bind0(ldap_t, who_t, cred_t, method_t, msgid_t, FALSE);
 }
