@@ -16,12 +16,14 @@
 #define BV_VAL "bv_val"
 #define LDCTL_ISCRITICAL "ldctl_iscritical"
 
-#define AUTH_NONE "auth_none"
-#define AUTH_SIMPLE "auth_simple"
-#define AUTH_SASL "auth_sasl"
-#define AUTH_KRBV4 "auth_krbv4"
-#define AUTH_KRBV41 "auth_krbv41"
-#define AUTH_KRBV42 "auth_krbv42"
+static atom_t ATOM_ldap_auth_none;
+static atom_t ATOM_ldap_auth_simple;
+static atom_t ATOM_ldap_auth_sasl;
+static atom_t ATOM_ldap_auth_krbv4;
+static atom_t ATOM_ldap_auth_krbv41;
+static atom_t ATOM_ldap_auth_krbv42;
+
+static atom_t ATOM_ldap_opt_protocol_version;
 
 void free_LDAPControl_array(LDAPControl** array, int size) {
     for (int i = 0; i < size; ++i) {
@@ -36,6 +38,9 @@ int get_list_size(term_t list) {
     term_t head = PL_new_term_ref();
     while (PL_get_list(tail, head, tail)) {
         ++size;
+    }
+    if (!PL_get_nil(tail)) {
+        return PL_type_error("list", tail);
     }
     return size;
 }
@@ -253,23 +258,36 @@ LDAPControl** build_LDAPControl_array(term_t ctrls_t, int* size) {
     while (PL_get_list(tail, head, tail)) {
         array[i++] = build_LDAPControl(head);
     }
+    if (!PL_get_nil(tail)) {
+        return PL_type_error("list", tail);
+    }
 
     return array;
 }
 
-int map_auth_method(char* method, int* method_int) {
+int map_option(atom_t option, int* option_int) {
     int result = TRUE;
-    if (!strcmp(method, AUTH_NONE)) {
+    if (option == ATOM_ldap_opt_protocol_version) {
+        *option_int = LDAP_OPT_PROTOCOL_VERSION;
+    } else {
+        result = FALSE;
+    }
+    return result;
+}
+
+int map_auth_method(atom_t method, int* method_int) {
+    int result = TRUE;
+    if (method == ATOM_ldap_auth_none) {
         *method_int = LDAP_AUTH_NONE;
-    } else if (!strcmp(method, AUTH_SIMPLE)) {
+    } else if (method == ATOM_ldap_auth_simple) {
         *method_int = LDAP_AUTH_SIMPLE;
-    } else if (!strcmp(method, AUTH_SASL)) {
+    } else if (method == ATOM_ldap_auth_sasl) {
         *method_int = LDAP_AUTH_SASL;
-    } else if (!strcmp(method, AUTH_KRBV4)) {
+    } else if (method == ATOM_ldap_auth_krbv4) {
         *method_int = LDAP_AUTH_KRBV4;
-    } else if (!strcmp(method, AUTH_KRBV41)) {
+    } else if (method == ATOM_ldap_auth_krbv41) {
         *method_int = LDAP_AUTH_KRBV41;
-    } else if (!strcmp(method, AUTH_KRBV42)) {
+    } else if (method == ATOM_ldap_auth_krbv42) {
         *method_int = LDAP_AUTH_KRBV42;
     } else {
         result = FALSE;
@@ -283,11 +301,7 @@ int ldap4pl_unbind0(term_t ldap_t, int synchronous) {
         return PL_type_error("pointer", ldap_t);
     }
 
-    if (!synchronous) {
-        return !ldap_unbind(ldap);
-    } else {
-        return !ldap_unbind_s(ldap);
-    }
+    return !synchronous? ldap_unbind(ldap) : !ldap_unbind_s(ldap);
 }
 
 int ldap4pl_unbind_ext0(term_t ldap_t, term_t sctrls_t, term_t cctrls_t, int synchronous) {
@@ -300,7 +314,6 @@ int ldap4pl_unbind_ext0(term_t ldap_t, term_t sctrls_t, term_t cctrls_t, int syn
     int cctrls_size;
     LDAPControl** sctrls = build_LDAPControl_array(sctrls_t, &sctrls_size);
     LDAPControl** cctrls = build_LDAPControl_array(cctrls_t, &cctrls_size);
-
     if ((!sctrls && sctrls_size) || (!cctrls && cctrls_size)) {
         if (sctrls) {
             free_LDAPControl_array(sctrls, sctrls_size);
@@ -309,19 +322,14 @@ int ldap4pl_unbind_ext0(term_t ldap_t, term_t sctrls_t, term_t cctrls_t, int syn
             free_LDAPControl_array(cctrls, cctrls_size);
         }
         return FALSE;
-    } else {
-        int result;
-        if (!synchronous) {
-            result = !ldap_unbind_ext(ldap, sctrls, cctrls);
-        } else {
-            result = !ldap_unbind_ext_s(ldap, sctrls, cctrls);
-        }
-
-        free_LDAPControl_array(sctrls, sctrls_size);
-        free_LDAPControl_array(cctrls, cctrls_size);
-
-        return result;
     }
+
+    int result = !synchronous? ldap_unbind_ext(ldap, sctrls, cctrls) : !ldap_unbind_ext_s(ldap, sctrls, cctrls);
+
+    free_LDAPControl_array(sctrls, sctrls_size);
+    free_LDAPControl_array(cctrls, cctrls_size);
+
+    return result;
 }
 
 int ldap4pl_bind0(term_t ldap_t, term_t who_t, term_t cred_t, term_t method_t, int synchronous) {
@@ -330,8 +338,8 @@ int ldap4pl_bind0(term_t ldap_t, term_t who_t, term_t cred_t, term_t method_t, i
         return PL_type_error("pointer", ldap_t);
     }
 
-    char* method;
-    if (!PL_get_atom_chars(method_t, &method)) {
+    atom_t method;
+    if (!PL_get_atom(method_t, &method)) {
         return PL_type_error("atom", method_t);
     }
 
@@ -349,11 +357,7 @@ int ldap4pl_bind0(term_t ldap_t, term_t who_t, term_t cred_t, term_t method_t, i
         return PL_type_error("atom", cred_t);
     }
 
-    if (!synchronous) {
-        return !ldap_bind(ldap, who, cred, method_int);
-    } else {
-        return !ldap_bind_s(ldap, who, cred, method_int);
-    }
+    return !synchronous? ldap_bind(ldap, who, cred, method_int) : !ldap_bind_s(ldap, who, cred, method_int);
 }
 
 int ldap4pl_simple_bind0(term_t ldap_t, term_t who_t, term_t passwd_t, int synchronous) {
@@ -371,15 +375,71 @@ int ldap4pl_simple_bind0(term_t ldap_t, term_t who_t, term_t passwd_t, int synch
         return PL_type_error("atom", passwd_t);
     }
 
+    return !synchronous? ldap_simple_bind(ldap, who, passwd) : !ldap_simple_bind_s(ldap, who, passwd);
+}
+
+int ldap4pl_sasl_bind0(term_t ldap_t, term_t dn_t, term_t mechanism_t,
+                       term_t cred_t, term_t sctrls_t, term_t cctrls_t,
+                       term_t msgidp_t, int synchronous) {
+    if (!synchronous && !PL_is_variable(msgidp_t)) {
+        return PL_uninstantiation_error(msgidp_t);
+    }
+
+    LDAP* ldap;
+    if (!PL_get_pointer(ldap_t, (void**) &ldap)) {
+        return PL_type_error("pointer", ldap_t);
+    }
+
+    char* dn;
+    if (!PL_get_atom_chars(dn_t, &dn)) {
+        return PL_type_error("atom", dn_t);
+    }
+    char* mechanism;
+    if (!PL_get_atom_chars(mechanism_t, &mechanism)) {
+        return PL_type_error("atom", mechanism_t);
+    }
+
+    BerValue* cred = build_BerValue(cred_t);
+    if (!cred) {
+        return FALSE;
+    }
+    
+    int sctrls_size;
+    int cctrls_size;
+    LDAPControl** sctrls = build_LDAPControl_array(sctrls_t, &sctrls_size);
+    LDAPControl** cctrls = build_LDAPControl_array(cctrls_t, &cctrls_size);
+    if ((!sctrls && sctrls_size) || (!cctrls && cctrls_size)) {
+        if (sctrls) {
+            free_LDAPControl_array(sctrls, sctrls_size);
+        }
+        if (cctrls) {
+            free_LDAPControl_array(cctrls, cctrls_size);
+        }
+        free(cred);
+        return FALSE;
+    }
+
+    int msgidp;
+    int result = !synchronous?
+        !ldap_sasl_bind(ldap, dn, mechanism, cred, sctrls, cctrls, &msgidp) :
+        !ldap_sasl_bind(ldap, dn, mechanism, cred, sctrls, cctrls, &msgidp); // FIXME: call synchronous version
+
+    free_LDAPControl_array(sctrls, sctrls_size);
+    free_LDAPControl_array(cctrls, cctrls_size);
+    free(cred);
+
     if (!synchronous) {
-        return !ldap_simple_bind(ldap, who, passwd);
+        return result & PL_unify_integer(msgidp_t, msgidp);
     } else {
-        return !ldap_simple_bind_s(ldap, who, passwd);
+        return result;
     }
 }
 
-
 static foreign_t ldap4pl_initialize(term_t ldap_t, term_t uri_t) {
+    if (!PL_is_variable(ldap_t)) {
+        return PL_uninstantiation_error(ldap_t);
+    }
+
     char* uri;
     if (!PL_get_atom_chars(uri_t, &uri)) {
         return PL_type_error("atom", uri_t);
@@ -427,7 +487,89 @@ static foreign_t ldap4pl_simple_bind_s(term_t ldap_t, term_t who_t, term_t passw
     return ldap4pl_simple_bind0(ldap_t, who_t, passwd_t, TRUE);
 }
 
+static foreign_t ldap4pl_sasl_bind(term_t ldap_t, term_t dn_t, term_t mechanism_t,
+                                   term_t cred_t, term_t sctrls_t, term_t cctrls_t, term_t msgidp_t) {
+    return ldap4pl_sasl_bind0(ldap_t, dn_t, mechanism_t, cred_t, sctrls_t, cctrls_t, msgidp_t, FALSE);
+}
+
+static foreign_t ldap4pl_sasl_bind_s(term_t ldap_t, term_t dn_t, term_t mechanism_t,
+                                   term_t cred_t, term_t sctrls_t, term_t cctrls_t) {
+    return ldap4pl_sasl_bind0(ldap_t, dn_t, mechanism_t, cred_t, sctrls_t, cctrls_t, (term_t) NULL, TRUE);
+}
+
+static foreign_t ldap4pl_set_option(term_t ldap_t, term_t option_t, term_t invalue_t) {
+    LDAP* ldap;
+    if (!PL_get_pointer(ldap_t, (void**) &ldap)) {
+        return PL_type_error("pointer", ldap_t);
+    }
+
+    atom_t option;
+    if (!PL_get_atom(option_t, &option)) {
+        return PL_type_error("atom", option_t);
+    }
+
+    int option_int;
+    if (!map_option(option, &option_int)) {
+        return PL_type_error("number", option_t);
+    }
+
+    if (PL_is_atom(invalue_t)) {
+        char* invalue;
+        if (PL_get_atom_chars(invalue_t, &invalue)) {
+            return !ldap_set_option(ldap, option, &invalue);
+        }
+    }
+
+    if (PL_is_integer(invalue_t)) {
+        int invalue;
+        if (PL_get_integer(invalue_t, &invalue)) {
+            int r = ldap_set_option(ldap, option_int, &invalue);
+            return !r;
+        }
+    }
+
+    if (PL_is_float(invalue_t)) {
+        double invalue;
+        if (PL_get_float(invalue_t, &invalue)) {
+            return !ldap_set_option(ldap, option, &invalue);
+        }
+    }
+
+    return FALSE;
+}
+
+static foreign_t ldap4pl_get_option(term_t ldap_t, term_t option_t, term_t outvalue_t) {
+    if (!PL_is_variable(outvalue_t)) {
+        return PL_uninstantiation_error(outvalue_t);
+    }
+
+    LDAP* ldap;
+    if (!PL_get_pointer(ldap_t, (void**) &ldap)) {
+        return PL_type_error("pointer", ldap_t);
+    }
+
+    int option;
+    if (!PL_get_integer(option_t, &option)) {
+        return PL_type_error("number", option_t);
+    }
+
+    return TRUE;
+}
+
+static void init_constants() {
+    ATOM_ldap_auth_none = PL_new_atom("ldap_auth_none");
+    ATOM_ldap_auth_simple = PL_new_atom("ldap_auth_simple");
+    ATOM_ldap_auth_sasl = PL_new_atom("ldap_auth_sasl");
+    ATOM_ldap_auth_krbv4 = PL_new_atom("ldap_auth_krbv4");
+    ATOM_ldap_auth_krbv41 = PL_new_atom("ldap_auth_krbv41");
+    ATOM_ldap_auth_krbv42 = PL_new_atom("ldap_auth_krbv42");
+
+    ATOM_ldap_opt_protocol_version = PL_new_atom("ldap_opt_protocol_version");
+}
+
 install_t install_ldap4pl() {
+    init_constants();
+
     PL_register_foreign("ldap4pl_initialize", 2, ldap4pl_initialize, 0);
     PL_register_foreign("ldap4pl_unbind", 1, ldap4pl_unbind, 0);
     PL_register_foreign("ldap4pl_unbind_s", 1, ldap4pl_unbind_s, 0);
@@ -437,4 +579,8 @@ install_t install_ldap4pl() {
     PL_register_foreign("ldap4pl_bind_s", 4, ldap4pl_bind_s, 0);
     PL_register_foreign("ldap4pl_simple_bind", 3, ldap4pl_simple_bind, 0);
     PL_register_foreign("ldap4pl_simple_bind_s", 3, ldap4pl_simple_bind_s, 0);
+    PL_register_foreign("ldap4pl_sasl_bind", 7, ldap4pl_sasl_bind, 0);
+    PL_register_foreign("ldap4pl_sasl_bind_s", 6, ldap4pl_sasl_bind_s, 0);
+    PL_register_foreign("ldap4pl_set_option", 3, ldap4pl_set_option, 0);
+    PL_register_foreign("ldap4pl_get_option", 3, ldap4pl_get_option, 0);
 }
