@@ -593,6 +593,39 @@ static foreign_t ldap4pl_get_option(term_t ldap_t, term_t option_t, term_t outva
     return TRUE;
 }
 
+static foreign_t ldap4pl_result_no_timeout(term_t ldap_t, term_t msgid_t, term_t all_t, term_t result_t) {
+    if (!PL_is_variable(result_t)) {
+        return PL_uninstantiation_error(result_t);
+    }
+
+    LDAP* ldap;
+    if (!PL_get_pointer(ldap_t, (void**) &ldap)) {
+        return PL_type_error("pointer", ldap_t);
+    }
+
+    int msgid;
+    if (!PL_get_integer(msgid_t, &msgid)) {
+        return PL_type_error("number", msgid_t);
+    }
+
+    int all;
+    if (!PL_get_bool(all_t, &all)) {
+        return PL_type_error("bool", all_t);
+    }
+
+    LDAPMessage* result;
+    if (ldap_result(ldap, msgid, all, NULL, &result) == -1) {
+        return FALSE;
+    }
+
+    // TODO: build the term
+    return TRUE;
+}
+
+static foreign_t ldap4pl_result(term_t ldap_t, term_t msgid_t, term_t all_t, term_t timeout, term_t result_t) {
+    return TRUE;
+}
+
 static void init_constants() {
     ATOM_ldapcontrol = PL_new_atom("ldapcontrol");
     ATOM_ldctl_oid = PL_new_atom("ldctl_oid");
@@ -625,4 +658,6 @@ install_t install_ldap4pl() {
     PL_register_foreign("ldap4pl_sasl_bind_s", 7, ldap4pl_sasl_bind_s, 0);
     PL_register_foreign("ldap4pl_set_option", 3, ldap4pl_set_option, 0);
     PL_register_foreign("ldap4pl_get_option", 3, ldap4pl_get_option, 0);
+    PL_register_foreign("ldap4pl_result_no_timeout", 4, ldap4pl_result_no_timeout, 0);
+    PL_register_foreign("ldap4pl_result", 5, ldap4pl_result, 0);
 }

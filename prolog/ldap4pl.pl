@@ -11,7 +11,9 @@
     ldap_sasl_bind/7,
     ldap_sasl_bind_s/7,
     ldap_set_option/3,
-    ldap_get_option/3
+    ldap_get_option/3,
+    ldap_result/4,
+    ldap_result/5
 ]).
 
 :- use_foreign_library(foreign(ldap4pl)).
@@ -54,3 +56,9 @@ ldap_set_option(LDAP, Option, Value) :-
 
 ldap_get_option(LDAP, Option, Value) :-
     ldap4pl_get_option(LDAP, Option, Value).
+
+ldap_result(LDAP, MsgID, All, Result) :-
+    ldap4pl_result_no_timeout(LDAP, MsgID, All, Result).
+
+ldap_result(LDAP, MsgID, All, Timeout, Result) :-
+    ldap4pl_result(LDAP, MsgID, All, Timeout, Result).
