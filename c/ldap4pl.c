@@ -9,12 +9,12 @@
 #define DEBUG(g)
 #endif
 
-#define LDAPCONTROL "ldapcontrol"
-#define LDCTL_OID "ldctl_oid"
-#define BERVAL "berval"
-#define BV_LEN "bv_len"
-#define BV_VAL "bv_val"
-#define LDCTL_ISCRITICAL "ldctl_iscritical"
+static atom_t ATOM_ldapcontrol;
+static atom_t ATOM_ldctl_oid;
+static atom_t ATOM_berval;
+static atom_t ATOM_bv_len;
+static atom_t ATOM_bv_val;
+static atom_t ATOM_ldctl_iscritical;
 
 static atom_t ATOM_ldap_auth_none;
 static atom_t ATOM_ldap_auth_simple;
@@ -66,16 +66,14 @@ BerValue* build_BerValue(term_t berval_t) {
             goto error;
         }
 
-        atom_t arg_name_t;
+        atom_t arg_name;
         int arity1;
-        if (!PL_get_compound_name_arity(arg_t, &arg_name_t, &arity1)) {
+        if (!PL_get_compound_name_arity(arg_t, &arg_name, &arity1)) {
             PL_type_error("compound", arg_t);
             goto error;
         }
 
-        const char* arg_name = PL_atom_chars(arg_name_t);
-
-        if (!strcmp(arg_name, BV_LEN)) {
+        if (arg_name == ATOM_bv_len) {
             term_t bv_len_t = PL_new_term_ref();
             if (!PL_get_arg(1, arg_t, bv_len_t)) {
                 PL_type_error("compound", arg_t);
@@ -88,7 +86,7 @@ BerValue* build_BerValue(term_t berval_t) {
                 goto error;
             }
             berval->bv_len = bv_len;
-        } else if (!strcmp(arg_name, BV_VAL)) {
+        } else if (arg_name == ATOM_bv_val) {
             term_t bv_val_t = PL_new_term_ref();
             if (!PL_get_arg(1, arg_t, bv_val_t)) {
                 PL_type_error("compound", arg_t);
@@ -127,15 +125,13 @@ int build_BerValue_for_LDAPControl(term_t berval_t, LDAPControl* ctrl) {
             return PL_type_error("compound", berval_t);
         }
 
-        atom_t arg_name_t;
+        atom_t arg_name;
         int arity1;
-        if (!PL_get_compound_name_arity(arg_t, &arg_name_t, &arity1)) {
+        if (!PL_get_compound_name_arity(arg_t, &arg_name, &arity1)) {
             return PL_type_error("compound", arg_t);
         }
 
-        const char* arg_name = PL_atom_chars(arg_name_t);
-
-        if (!strcmp(arg_name, BV_LEN)) {
+        if (arg_name == ATOM_bv_len) {
             term_t bv_len_t = PL_new_term_ref();
             if (!PL_get_arg(1, arg_t, bv_len_t)) {
                 return PL_type_error("compound", arg_t);
@@ -146,7 +142,7 @@ int build_BerValue_for_LDAPControl(term_t berval_t, LDAPControl* ctrl) {
                 return PL_type_error("number", bv_len_t);
             }
             ctrl->ldctl_value.bv_len = bv_len;
-        } else if (!strcmp(arg_name, BV_VAL)) {
+        } else if (arg_name == ATOM_bv_val) {
             term_t bv_val_t = PL_new_term_ref();
             if (!PL_get_arg(1, arg_t, bv_val_t)) {
                 return PL_type_error("compound", arg_t);
@@ -172,18 +168,17 @@ int build_BerValue_for_LDAPControl(term_t berval_t, LDAPControl* ctrl) {
  */
 LDAPControl* build_LDAPControl(term_t ctrl_t) {
     LDAPControl* ctrl = malloc(sizeof (LDAPControl));
-    memset(ctrl, 0, sizeof (LDAPCONTROL));
+    memset(ctrl, 0, sizeof (LDAPControl));
 
-    atom_t name_t;
+    atom_t name;
     int arity;
-    if (!PL_get_compound_name_arity(ctrl_t, &name_t, &arity)) {
+    if (!PL_get_compound_name_arity(ctrl_t, &name, &arity)) {
         PL_type_error("compound", ctrl_t);
         goto error;
     }
 
-    const char* name = PL_atom_chars(name_t);
-    if (strcmp(name, LDAPCONTROL)) {
-        PL_domain_error(LDAPCONTROL, name_t);
+    if (name != ATOM_ldapcontrol) {
+        PL_domain_error(PL_atom_chars(name), name);
         goto error;
     }
 
@@ -194,16 +189,14 @@ LDAPControl* build_LDAPControl(term_t ctrl_t) {
             goto error;
         }
 
-        atom_t arg_name_t;
+        atom_t arg_name;
         int arity1;
-        if (!PL_get_compound_name_arity(arg_t, &arg_name_t, &arity1)) {
+        if (!PL_get_compound_name_arity(arg_t, &arg_name, &arity1)) {
             PL_type_error("compound", arg_t);
             goto error;
         }
 
-        const char* arg_name = PL_atom_chars(arg_name_t);
-
-        if (!strcmp(arg_name, LDCTL_OID)) {
+        if (arg_name == ATOM_ldctl_oid) {
             term_t ldctl_oid_t = PL_new_term_ref();
             if (!PL_get_arg(1, arg_t, ldctl_oid_t)) {
                 PL_type_error("compound", arg_t);
@@ -216,11 +209,11 @@ LDAPControl* build_LDAPControl(term_t ctrl_t) {
                 goto error;
             }
             ctrl->ldctl_oid = ldctl_oid;
-        } else if (!strcmp(arg_name, BERVAL)) {
+        } else if (arg_name == ATOM_berval) {
             if (!build_BerValue_for_LDAPControl(arg_t, ctrl)) {
                 goto error;
             }
-        } else if (!strcmp(arg_name, LDCTL_ISCRITICAL)) {
+        } else if (arg_name == ATOM_ldctl_iscritical) {
             term_t ldctl_iscritical_t = PL_new_term_ref();
             if (!PL_get_arg(1, arg_t, ldctl_iscritical_t)) {
                 PL_type_error("compound", arg_t);
@@ -259,7 +252,8 @@ LDAPControl** build_LDAPControl_array(term_t ctrls_t, int* size) {
         array[i++] = build_LDAPControl(head);
     }
     if (!PL_get_nil(tail)) {
-        return PL_type_error("list", tail);
+        PL_type_error("list", tail);
+        return NULL;
     }
 
     return array;
@@ -397,9 +391,13 @@ int ldap4pl_simple_bind0(term_t ldap_t, term_t who_t, term_t passwd_t, term_t ms
 
 int ldap4pl_sasl_bind0(term_t ldap_t, term_t dn_t, term_t mechanism_t,
                        term_t cred_t, term_t sctrls_t, term_t cctrls_t,
-                       term_t msgid_t, int synchronous) {
+                       term_t msgid_t, term_t servercredp_t, int synchronous) {
     if (!synchronous && !PL_is_variable(msgid_t)) {
         return PL_uninstantiation_error(msgid_t);
+    }
+
+    if (synchronous && !PL_is_variable(servercredp_t)) {
+        return PL_uninstantiation_error(servercredp_t);
     }
 
     LDAP* ldap;
@@ -437,9 +435,10 @@ int ldap4pl_sasl_bind0(term_t ldap_t, term_t dn_t, term_t mechanism_t,
     }
 
     int msgid;
+    BerValue* servercredp;
     int result = !synchronous?
         !ldap_sasl_bind(ldap, dn, mechanism, cred, sctrls, cctrls, &msgid) :
-        !ldap_sasl_bind(ldap, dn, mechanism, cred, sctrls, cctrls, &msgid); // FIXME: call synchronous version
+        !ldap_sasl_bind_s(ldap, dn, mechanism, cred, sctrls, cctrls, &servercredp);
 
     free_LDAPControl_array(sctrls, sctrls_size);
     free_LDAPControl_array(cctrls, cctrls_size);
@@ -448,7 +447,7 @@ int ldap4pl_sasl_bind0(term_t ldap_t, term_t dn_t, term_t mechanism_t,
     if (!synchronous) {
         return result & PL_unify_integer(msgid_t, msgid);
     } else {
-        return result;
+        return result & PL_unify_pointer(servercredp_t, servercredp);
     }
 }
 
@@ -527,12 +526,12 @@ static foreign_t ldap4pl_simple_bind_s(term_t ldap_t, term_t who_t, term_t passw
 
 static foreign_t ldap4pl_sasl_bind(term_t ldap_t, term_t dn_t, term_t mechanism_t,
                                    term_t cred_t, term_t sctrls_t, term_t cctrls_t, term_t msgid_t) {
-    return ldap4pl_sasl_bind0(ldap_t, dn_t, mechanism_t, cred_t, sctrls_t, cctrls_t, msgid_t, FALSE);
+    return ldap4pl_sasl_bind0(ldap_t, dn_t, mechanism_t, cred_t, sctrls_t, cctrls_t, msgid_t, (term_t) NULL, FALSE);
 }
 
 static foreign_t ldap4pl_sasl_bind_s(term_t ldap_t, term_t dn_t, term_t mechanism_t,
-                                   term_t cred_t, term_t sctrls_t, term_t cctrls_t) {
-    return ldap4pl_sasl_bind0(ldap_t, dn_t, mechanism_t, cred_t, sctrls_t, cctrls_t, (term_t) NULL, TRUE);
+                                     term_t cred_t, term_t sctrls_t, term_t cctrls_t, term_t servercredp_t) {
+    return ldap4pl_sasl_bind0(ldap_t, dn_t, mechanism_t, cred_t, sctrls_t, cctrls_t, (term_t) NULL, servercredp_t, TRUE);
 }
 
 static foreign_t ldap4pl_set_option(term_t ldap_t, term_t option_t, term_t invalue_t) {
@@ -595,6 +594,13 @@ static foreign_t ldap4pl_get_option(term_t ldap_t, term_t option_t, term_t outva
 }
 
 static void init_constants() {
+    ATOM_ldapcontrol = PL_new_atom("ldapcontrol");
+    ATOM_ldctl_oid = PL_new_atom("ldctl_oid");
+    ATOM_berval = PL_new_atom("berval");
+    ATOM_bv_len = PL_new_atom("bv_len");
+    ATOM_bv_val = PL_new_atom("bv_val");
+    ATOM_ldctl_iscritical = PL_new_atom("ldctl_iscritical");
+
     ATOM_ldap_auth_none = PL_new_atom("ldap_auth_none");
     ATOM_ldap_auth_simple = PL_new_atom("ldap_auth_simple");
     ATOM_ldap_auth_sasl = PL_new_atom("ldap_auth_sasl");
@@ -616,7 +622,7 @@ install_t install_ldap4pl() {
     PL_register_foreign("ldap4pl_simple_bind", 4, ldap4pl_simple_bind, 0);
     PL_register_foreign("ldap4pl_simple_bind_s", 3, ldap4pl_simple_bind_s, 0);
     PL_register_foreign("ldap4pl_sasl_bind", 7, ldap4pl_sasl_bind, 0);
-    PL_register_foreign("ldap4pl_sasl_bind_s", 6, ldap4pl_sasl_bind_s, 0);
+    PL_register_foreign("ldap4pl_sasl_bind_s", 7, ldap4pl_sasl_bind_s, 0);
     PL_register_foreign("ldap4pl_set_option", 3, ldap4pl_set_option, 0);
     PL_register_foreign("ldap4pl_get_option", 3, ldap4pl_get_option, 0);
 }

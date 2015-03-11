@@ -9,7 +9,7 @@
     ldap_simple_bind/4,
     ldap_simple_bind_s/3,
     ldap_sasl_bind/7,
-    ldap_sasl_bind_s/6,
+    ldap_sasl_bind_s/7,
     ldap_set_option/3,
     ldap_get_option/3
 ]).
@@ -46,8 +46,8 @@ ldap_simple_bind_s(LDAP, Who, Passwd) :-
 ldap_sasl_bind(LDAP, DN, Mechanism, Cred, SCtrls, CCtrls, MsgID) :-
     ldap4pl_sasl_bind(LDAP, DN, Mechanism, Cred, SCtrls, CCtrls, MsgID).
 
-ldap_sasl_bind_s(LDAP, DN, Mechanism, Cred, SCtrls, CCtrls) :-
-    ldap4pl_sasl_bind_s(LDAP, DN, Mechanism, Cred, SCtrls, CCtrls).
+ldap_sasl_bind_s(LDAP, DN, Mechanism, Cred, SCtrls, CCtrls, ServerCredP) :-
+    ldap4pl_sasl_bind_s(LDAP, DN, Mechanism, Cred, SCtrls, CCtrls, ServerCredP).
 
 ldap_set_option(LDAP, Option, Value) :-
     ldap4pl_set_option(LDAP, Option, Value).
