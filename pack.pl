@@ -2,8 +2,8 @@ name(ldap4pl).
 version('0.1').
 title('LDAP interface').
 keywords([ldap]).
-author('Honnix Liang', 'http://honnix.com').
-packager('Honnix Liang', 'http://honnix.com').
-maintainer('Honnix Liang', 'http://honnix.com').
+author('Hongxin Liang', 'hongxin.liang@ericsson.com').
+packager('Hongxin Liang', 'hongxin.liang@ericsson.com').
+maintainer('Hongxin Liang', 'hongxin.liang@ericsson.com').
 home('').
 download('').
