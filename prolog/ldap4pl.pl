@@ -48,8 +48,8 @@ ldap_simple_bind_s(LDAP, Who, Passwd) :-
 ldap_sasl_bind(LDAP, DN, Mechanism, Cred, SCtrls, CCtrls, MsgID) :-
     ldap4pl_sasl_bind(LDAP, DN, Mechanism, Cred, SCtrls, CCtrls, MsgID).
 
-ldap_sasl_bind_s(LDAP, DN, Mechanism, Cred, SCtrls, CCtrls, ServerCredP) :-
-    ldap4pl_sasl_bind_s(LDAP, DN, Mechanism, Cred, SCtrls, CCtrls, ServerCredP).
+ldap_sasl_bind_s(LDAP, DN, Mechanism, Cred, SCtrls, CCtrls, ServerCred) :-
+    ldap4pl_sasl_bind_s(LDAP, DN, Mechanism, Cred, SCtrls, CCtrls, ServerCred).
 
 ldap_set_option(LDAP, Option, Value) :-
     ldap4pl_set_option(LDAP, Option, Value).
@@ -58,7 +58,7 @@ ldap_get_option(LDAP, Option, Value) :-
     ldap4pl_get_option(LDAP, Option, Value).
 
 ldap_result(LDAP, MsgID, All, Result) :-
-    ldap4pl_result_no_timeout(LDAP, MsgID, All, Result).
+    ldap4pl_result(LDAP, MsgID, All, _, Result).
 
 ldap_result(LDAP, MsgID, All, Timeout, Result) :-
     ldap4pl_result(LDAP, MsgID, All, Timeout, Result).
