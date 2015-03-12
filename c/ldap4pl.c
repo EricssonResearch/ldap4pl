@@ -22,6 +22,10 @@ static atom_t ATOM_bv_len;
 static atom_t ATOM_bv_val;
 static atom_t ATOM_ldctl_iscritical;
 
+static functor_t FUNCTOR_berval;
+static functor_t FUNCTOR_bv_len;
+static functor_t FUNCTOR_bv_val;
+
 static atom_t ATOM_ldap_auth_none;
 static atom_t ATOM_ldap_auth_simple;
 static atom_t ATOM_ldap_auth_sasl;
@@ -30,7 +34,6 @@ static atom_t ATOM_ldap_auth_krbv41;
 static atom_t ATOM_ldap_auth_krbv42;
 
 static atom_t ATOM_ldap_opt_protocol_version;
-
 
 static atom_t ATOM_ldap_res_bind;
 static atom_t ATOM_ldap_res_search_entry;
@@ -126,6 +129,19 @@ BerValue* build_BerValue(term_t berval_t) {
 error:
     free(berval);
     return NULL;
+}
+
+int build_BerValue_t(BerValue* berval, term_t berval_t) {
+    term_t bv_len_t = PL_new_term_ref();
+    if (!PL_unify_term(bv_len_t, PL_FUNCTOR, FUNCTOR_bv_len, PL_LONG, berval->bv_len)) {
+        return FALSE;
+    }
+    term_t bv_val_t = PL_new_term_ref();
+    if (!PL_unify_term(bv_val_t, PL_FUNCTOR, FUNCTOR_bv_val, PL_CHARS, berval->bv_val)) {
+        return FALSE;
+    }
+
+    return PL_unify_term(berval_t, PL_FUNCTOR, FUNCTOR_berval, PL_TERM, bv_len_t, PL_TERM, bv_val_t);
 }
 
 /*
@@ -559,7 +575,9 @@ int ldap4pl_sasl_bind0(term_t ldap_t, term_t dn_t, term_t mechanism_t,
     if (!synchronous) {
         return result & PL_unify_integer(msgid_t, msgid);
     } else {
-        return result & PL_unify_pointer(servercred_t, servercred);
+        int tmp = result & build_BerValue_t(servercred, servercred_t);
+        ber_bvfree(servercred);
+        return tmp;
     }
 }
 
@@ -802,6 +820,10 @@ static void init_constants() {
     ATOM_ldap_res_compare = PL_new_atom("ldap_res_compare");
     ATOM_ldap_res_extended = PL_new_atom("ldap_res_extended");
     ATOM_ldap_res_intermediate = PL_new_atom("ldap_res_intermediate");
+
+    FUNCTOR_berval = PL_new_functor(ATOM_berval, 2);
+    FUNCTOR_bv_len = PL_new_functor(ATOM_bv_len, 1);
+    FUNCTOR_bv_val = PL_new_functor(ATOM_bv_val, 1);
 }
 
 install_t install_ldap4pl() {
