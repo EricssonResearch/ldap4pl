@@ -13,7 +13,9 @@
     ldap_set_option/3,
     ldap_get_option/3,
     ldap_result/4,
-    ldap_result/5
+    ldap_result/5,
+    ldap_msgfree/1,
+    ldap_msgtype/2
 ]).
 
 :- use_foreign_library(foreign(ldap4pl)).
@@ -62,3 +64,9 @@ ldap_result(LDAP, MsgID, All, Result) :-
 
 ldap_result(LDAP, MsgID, All, Timeout, Result) :-
     ldap4pl_result(LDAP, MsgID, All, Timeout, Result).
+
+ldap_msgfree(Msg) :-
+    ldap4pl_msgfree(Msg).
+
+ldap_msgtype(Msg, Type) :-
+    ldap4pl_msgtype(Msg, Type).
