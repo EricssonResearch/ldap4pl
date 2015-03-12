@@ -575,9 +575,11 @@ int ldap4pl_sasl_bind0(term_t ldap_t, term_t dn_t, term_t mechanism_t,
     if (!synchronous) {
         return result & PL_unify_integer(msgid_t, msgid);
     } else {
-        int tmp = result & build_BerValue_t(servercred, servercred_t);
-        ber_bvfree(servercred);
-        return tmp;
+        int final_result = result & build_BerValue_t(servercred, servercred_t);
+        if (result) {
+            ber_bvfree(servercred);
+        }
+        return final_result;
     }
 }
 
@@ -662,6 +664,32 @@ static foreign_t ldap4pl_sasl_bind(term_t ldap_t, term_t dn_t, term_t mechanism_
 static foreign_t ldap4pl_sasl_bind_s(term_t ldap_t, term_t dn_t, term_t mechanism_t,
                                      term_t cred_t, term_t sctrls_t, term_t cctrls_t, term_t servercred_t) {
     return ldap4pl_sasl_bind0(ldap_t, dn_t, mechanism_t, cred_t, sctrls_t, cctrls_t, (term_t) NULL, servercred_t, TRUE);
+}
+
+static foreign_t ldap4pl_parse_sasl_bind_result(term_t ldap_t, term_t msg_t, term_t servercred_t, term_t freeit_t) {
+    LDAP* ldap;
+    if (!PL_get_pointer(ldap_t, (void**) &ldap)) {
+        return PL_type_error("pointer", ldap_t);
+    }
+
+    LDAPMessage* msg;
+    if (!PL_get_pointer(msg_t, (void**) &msg)) {
+        return PL_type_error("pointer", msg_t);
+    }
+
+    int freeit;
+    if (!PL_get_bool(freeit_t, &freeit)) {
+        return PL_type_error("bool", freeit_t);
+    }
+
+    BerValue* servercred;
+    if (!ldap_parse_sasl_bind_result(ldap, msg, &servercred, freeit)) {
+        return FALSE;
+    }
+
+    int result = build_BerValue_t(servercred, servercred_t);
+    ber_bvfree(servercred);
+    return result;
 }
 
 static foreign_t ldap4pl_set_option(term_t ldap_t, term_t option_t, term_t invalue_t) {
