@@ -15,7 +15,8 @@
     ldap_result/4,
     ldap_result/5,
     ldap_msgfree/1,
-    ldap_msgtype/2
+    ldap_msgtype/2,
+    ldap_msgid/2
 ]).
 
 :- use_foreign_library(foreign(ldap4pl)).
@@ -70,3 +71,6 @@ ldap_msgfree(Msg) :-
 
 ldap_msgtype(Msg, Type) :-
     ldap4pl_msgtype(Msg, Type).
+
+ldap_msgid(Msg, ID) :-
+    ldap4pl_msgid(Msg, ID).

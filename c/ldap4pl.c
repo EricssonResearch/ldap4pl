@@ -756,6 +756,20 @@ static foreign_t ldap4pl_msgtype(term_t msg_t, term_t type_t) {
     return map_msg_type(result, type_t);
 }
 
+static foreign_t ldap4pl_msgid(term_t msg_t, term_t id_t) {
+    LDAPMessage* msg;
+    if (!PL_get_pointer(msg_t, (void**) &msg)) {
+        return PL_type_error("pointer", msg_t);
+    }
+
+    int result;
+    if ((result = ldap_msgid(msg)) == -1) {
+        return FALSE;
+    }
+
+    return PL_unify_integer(id_t, result);
+}
+
 static void init_constants() {
     ATOM_timeval = PL_new_atom("timeval");
     ATOM_tv_sec = PL_new_atom("tv_sec");
@@ -807,4 +821,5 @@ install_t install_ldap4pl() {
     PL_register_foreign("ldap4pl_result", 5, ldap4pl_result, 0);
     PL_register_foreign("ldap4pl_msgfree", 1, ldap4pl_msgfree, 0);
     PL_register_foreign("ldap4pl_msgtype", 2, ldap4pl_msgtype, 0);
+    PL_register_foreign("ldap4pl_msgid", 2, ldap4pl_msgid, 0);
 }
