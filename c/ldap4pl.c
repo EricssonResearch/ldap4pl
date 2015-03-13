@@ -47,32 +47,27 @@ static atom_t ATOM_ldap_res_compare;
 static atom_t ATOM_ldap_res_extended;
 static atom_t ATOM_ldap_res_intermediate;
 
-void free_LDAPControl_array(LDAPControl** array, int size) {
-    for (int i = 0; i < size; ++i) {
-        free(array[i]);
-    }
-    free(array);
-}
-
-int get_list_size(term_t list) {
-    int size = 0;
+int get_list_size(term_t list, int* size) {
+    int _size = 0;
+    *size = _size;
     term_t tail = PL_copy_term_ref(list);
     term_t head = PL_new_term_ref();
     while (PL_get_list(tail, head, tail)) {
-        ++size;
+        ++_size;
     }
     if (!PL_get_nil(tail)) {
         return PL_type_error("list", tail);
     }
-    return size;
+    *size = _size;
+    return TRUE;
 }
 
 /*
  * berval(bv_len(12), bv_val(atom))
  */
-BerValue* build_BerValue(term_t berval_t) {
-    BerValue* berval = malloc(sizeof (BerValue));
-    memset(berval, 0, sizeof (BerValue));
+int build_BerValue(term_t berval_t, BerValue** berval) {
+    BerValue* _berval = malloc(sizeof (BerValue));
+    memset(_berval, 0, sizeof (BerValue));
 
     atom_t name;
     int arity;
@@ -107,7 +102,7 @@ BerValue* build_BerValue(term_t berval_t) {
                 PL_type_error("number", bv_len_t);
                 goto error;
             }
-            berval->bv_len = bv_len;
+            _berval->bv_len = bv_len;
         } else if (arg_name == ATOM_bv_val) {
             term_t bv_val_t = PL_new_term_ref();
             if (!PL_get_arg(1, arg_t, bv_val_t)) {
@@ -120,15 +115,16 @@ BerValue* build_BerValue(term_t berval_t) {
                 PL_type_error("atom", bv_val_t);
                 goto error;
             }
-            berval->bv_val = bv_val;
+            _berval->bv_val = bv_val;
         }
     }
 
-    return berval;
+    *berval = _berval;
+    return TRUE;
 
 error:
-    free(berval);
-    return NULL;
+    free(_berval);
+    return FALSE;
 }
 
 int build_BerValue_t(BerValue* berval, term_t berval_t) {
@@ -201,9 +197,9 @@ int build_BerValue_for_LDAPControl(term_t berval_t, LDAPControl* ctrl) {
  *   ldctl_iscritical(c)
  * )
  */
-LDAPControl* build_LDAPControl(term_t ctrl_t) {
-    LDAPControl* ctrl = malloc(sizeof (LDAPControl));
-    memset(ctrl, 0, sizeof (LDAPControl));
+int build_LDAPControl(term_t ctrl_t, LDAPControl** ctrl) {
+    LDAPControl* _ctrl = malloc(sizeof (LDAPControl));
+    memset(_ctrl, 0, sizeof (LDAPControl));
 
     atom_t name;
     int arity;
@@ -243,9 +239,9 @@ LDAPControl* build_LDAPControl(term_t ctrl_t) {
                 PL_type_error("atom", ldctl_oid_t);
                 goto error;
             }
-            ctrl->ldctl_oid = ldctl_oid;
+            _ctrl->ldctl_oid = ldctl_oid;
         } else if (arg_name == ATOM_berval) {
-            if (!build_BerValue_for_LDAPControl(arg_t, ctrl)) {
+            if (!build_BerValue_for_LDAPControl(arg_t, _ctrl)) {
                 goto error;
             }
         } else if (arg_name == ATOM_ldctl_iscritical) {
@@ -260,46 +256,62 @@ LDAPControl* build_LDAPControl(term_t ctrl_t) {
                 PL_type_error("atom", ldctl_iscritical_t);
                 goto error;
             }
-            ctrl->ldctl_iscritical = ldctl_iscritical[0];
+            _ctrl->ldctl_iscritical = ldctl_iscritical[0];
         }
     }
 
-    return ctrl;
+    *ctrl = _ctrl;
+    return TRUE;
 
 error:
     free(ctrl);
-    return NULL;
+    return FALSE;
 }
 
-LDAPControl** build_LDAPControl_array(term_t ctrls_t, int* size) {
-    *size = get_list_size(ctrls_t);
-    if (!*size) {
-        return NULL;
+void free_LDAPControl_array(LDAPControl** array, int size) {
+    if (size) {
+        for (int i = 0; i < size; ++i) {
+            free(array[i]);
+        }
+        free(array);
+    }
+}
+
+int build_LDAPControl_array(term_t ctrls_t, LDAPControl*** array, int* size) {
+    if (!get_list_size(ctrls_t, size)) {
+        return FALSE;
     }
 
-    LDAPControl** array = malloc(*size * sizeof (LDAPControl*));
-    memset(array, 0, sizeof (LDAPControl*) * (*size));
+    if (*size == 0) {
+        return TRUE;
+    }
+
+    LDAPControl** _array = malloc(*size * sizeof (LDAPControl*));
+    memset(_array, 0, sizeof (LDAPControl*) * (*size));
 
     term_t tail = PL_copy_term_ref(ctrls_t);
     term_t head = PL_new_term_ref();
     int i = 0;
     while (PL_get_list(tail, head, tail)) {
-        array[i++] = build_LDAPControl(head);
+        if (!build_LDAPControl(head, &_array[i++])) {
+            free_LDAPControl_array(_array, i - 1);
+            return FALSE;
+        }
     }
     if (!PL_get_nil(tail)) {
-        PL_type_error("list", tail);
-        return NULL;
+        return PL_type_error("list", tail);
     }
 
-    return array;
+    *array = _array;
+    return TRUE;
 }
 
 /*
  * timeval(tv_sec(100), tv_usec(100))
  */
-TimeVal* build_timeval(term_t timeval_t) {
-    TimeVal* timeval = malloc(sizeof (TimeVal));
-    memset(timeval, 0, sizeof (TimeVal));
+int build_timeval(term_t timeval_t, TimeVal** timeval) {
+    TimeVal* _timeval = malloc(sizeof (TimeVal));
+    memset(_timeval, 0, sizeof (TimeVal));
 
     atom_t name;
     int arity;
@@ -334,7 +346,7 @@ TimeVal* build_timeval(term_t timeval_t) {
                 PL_type_error("number", tv_sec_t);
                 goto error;
             }
-            timeval->tv_sec = tv_sec;
+            _timeval->tv_sec = tv_sec;
         } else if (arg_name == ATOM_tv_usec) {
             term_t tv_usec_t = PL_new_term_ref();
             if (!PL_get_arg(1, arg_t, tv_usec_t)) {
@@ -347,15 +359,16 @@ TimeVal* build_timeval(term_t timeval_t) {
                 PL_type_error("number", tv_usec_t);
                 goto error;
             }
-            timeval->tv_usec = tv_usec;
+            _timeval->tv_usec = tv_usec;
         }
     }
 
-    return timeval;
+    *timeval = _timeval;
+    return TRUE;
 
 error:
-    free(timeval);
-    return NULL;
+    free(_timeval);
+    return FALSE;
 }
 
 int map_option(atom_t option, int* option_int) {
@@ -428,16 +441,15 @@ int ldap4pl_unbind_ext0(term_t ldap_t, term_t sctrls_t, term_t cctrls_t, term_t 
     }
 
     int sctrls_size;
+    LDAPControl** sctrls;
+    if (!build_LDAPControl_array(sctrls_t, &sctrls, &sctrls_size)) {
+        return FALSE;
+    }
+
     int cctrls_size;
-    LDAPControl** sctrls = build_LDAPControl_array(sctrls_t, &sctrls_size);
-    LDAPControl** cctrls = build_LDAPControl_array(cctrls_t, &cctrls_size);
-    if ((!sctrls && sctrls_size) || (!cctrls && cctrls_size)) {
-        if (sctrls) {
-            free_LDAPControl_array(sctrls, sctrls_size);
-        }
-        if (cctrls) {
-            free_LDAPControl_array(cctrls, cctrls_size);
-        }
+    LDAPControl** cctrls;
+    if (!build_LDAPControl_array(cctrls_t, &cctrls, &cctrls_size)) {
+        free_LDAPControl_array(sctrls, sctrls_size);
         return FALSE;
     }
 
@@ -542,22 +554,21 @@ int ldap4pl_sasl_bind0(term_t ldap_t, term_t dn_t, term_t mechanism_t,
         return PL_type_error("atom", mechanism_t);
     }
 
-    BerValue* cred = build_BerValue(cred_t);
-    if (!cred) {
+    BerValue* cred;
+    if (!build_BerValue(cred_t, &cred)) {
         return FALSE;
     }
     
     int sctrls_size;
+    LDAPControl** sctrls;
+    if (!build_LDAPControl_array(sctrls_t, &sctrls, &sctrls_size)) {
+        return FALSE;
+    }
+
     int cctrls_size;
-    LDAPControl** sctrls = build_LDAPControl_array(sctrls_t, &sctrls_size);
-    LDAPControl** cctrls = build_LDAPControl_array(cctrls_t, &cctrls_size);
-    if ((!sctrls && sctrls_size) || (!cctrls && cctrls_size)) {
-        if (sctrls) {
-            free_LDAPControl_array(sctrls, sctrls_size);
-        }
-        if (cctrls) {
-            free_LDAPControl_array(cctrls, cctrls_size);
-        }
+    LDAPControl** cctrls;
+    if (!build_LDAPControl_array(cctrls_t, &cctrls, &cctrls_size)) {
+        free_LDAPControl_array(sctrls, sctrls_size);
         free(cred);
         return FALSE;
     }
@@ -619,16 +630,15 @@ static foreign_t ldap4pl_unbind_ext(term_t ldap_t, term_t sctrls_t, term_t cctrl
     }
 
     int sctrls_size;
+    LDAPControl** sctrls;
+    if (!build_LDAPControl_array(sctrls_t, &sctrls, &sctrls_size)) {
+        return FALSE;
+    }
+
     int cctrls_size;
-    LDAPControl** sctrls = build_LDAPControl_array(sctrls_t, &sctrls_size);
-    LDAPControl** cctrls = build_LDAPControl_array(cctrls_t, &cctrls_size);
-    if ((!sctrls && sctrls_size) || (!cctrls && cctrls_size)) {
-        if (sctrls) {
-            free_LDAPControl_array(sctrls, sctrls_size);
-        }
-        if (cctrls) {
-            free_LDAPControl_array(cctrls, cctrls_size);
-        }
+    LDAPControl** cctrls;
+    if (!build_LDAPControl_array(cctrls_t, &cctrls, &cctrls_size)) {
+        free_LDAPControl_array(sctrls, sctrls_size);
         return FALSE;
     }
 
@@ -764,8 +774,8 @@ static foreign_t ldap4pl_result(term_t ldap_t, term_t msgid_t, term_t all_t, ter
             return FALSE;
         }
     } else {
-        struct timeval* timeout = build_timeval(timeout_t);
-        if (!timeout) {
+        TimeVal* timeout;
+        if (!build_timeval(timeout_t, &timeout)) {
             return FALSE;
         }
 
