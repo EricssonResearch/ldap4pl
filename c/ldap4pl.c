@@ -594,6 +594,100 @@ int ldap4pl_sasl_bind0(term_t ldap_t, term_t dn_t, term_t mechanism_t,
     }
 }
 
+int ldap4pl_search_ext0(term_t ldap_t, term_t base_t, term_t scope_t, term_t filter_t,
+                        term_t attrs_t, term_t attrsonly_t, term_t sctrls_t,
+                        term_t cctrls_t, term_t timeout_t, term_t sizelimit_t,
+                        term_t msgid_t, term_t res_t, int synchronous) {
+    if (!synchronous && !PL_is_variable(msgid_t)) {
+        return PL_uninstantiation_error(msgid_t);
+    }
+
+    if (synchronous && !PL_is_variable(res_t)) {
+        return PL_uninstantiation_error(res_t);
+    }
+
+    LDAP* ldap;
+    if (!PL_get_pointer(ldap_t, (void**) &ldap)) {
+        return PL_type_error("pointer", ldap_t);
+    }
+
+    char* base;
+    if (!PL_get_atom_chars(base_t, &base)) {
+        return PL_type_error("atom", base_t);
+    }
+    int* scope;
+    if (!PL_get_integer(scope_t, &scope)) {
+        return PL_type_error("atom", scope_t);
+    }
+    char* filter = NULL;
+    if (!PL_get_atom_chars(filter_t, &filter)) {
+        return PL_type_error("atom", filter_t);
+    }
+    char** attrs = NULL;
+    if (!PL_is_variable(attrs_t)) {
+        if (!build_filters(attrs_t, &attrs)) {
+            return FALSE;
+        }
+    }
+    int* attrsonly;
+    if (!PL_get_integer(attrsonly_t, &attrsonly)) {
+        free(attrs);
+        return PL_type_error("atom", attrsonly_t);
+    }
+    
+    int sctrls_size;
+    LDAPControl** sctrls;
+    if (!build_LDAPControl_array(sctrls_t, &sctrls, &sctrls_size)) {
+        free(attrs);
+        return FALSE;
+    }
+
+    int cctrls_size;
+    LDAPControl** cctrls;
+    if (!build_LDAPControl_array(cctrls_t, &cctrls, &cctrls_size)) {
+        free_LDAPControl_array(sctrls, sctrls_size);
+        free(attrs);
+        return FALSE;
+    }
+
+    TimeValue* timeout = NULL;
+    if (!PL_is_variable(timeout_t)) {
+        if (!build_timeval(timeout_t, &timeout)) {
+            free_LDAPControl_array(cctrls, cctrls_size);
+            free_LDAPControl_array(sctrls, sctrls_size);
+            free(attrs);
+            return FALSE;
+        }
+        free(timeout);
+    }
+    
+    int* sizelimit;
+    if (!PL_get_integer(sizelimit_t, &sizelimit)) {
+        free_LDAPControl_array(cctrls, cctrls_size);
+        free_LDAPControl_array(sctrls, sctrls_size);
+        free(timeout);
+        free(attrs);
+        return PL_type_error("atom", sizelimit_t);
+    }
+
+    int msgid;
+    LDAPMessage* res;
+    int result = !synchronous ?
+        !ldap_search_ext(ldap, base, scope, filter, attrs, attrsonly, sctrls, cctrls, timeout, sizelimit, &msgid) :
+        !ldap_search_ext_s(ldap, base, scope, filter, attrs, attrsonly, sctrls, cctrls, timeout, sizelimit, &res;
+
+    free_LDAPControl_array(sctrls, sctrls_size);
+    free_LDAPControl_array(cctrls, cctrls_size);
+    free(timeout);
+    free(attrs);
+
+    if (!synchronous) {
+        return result & PL_unify_integer(msgid_t, msgid);
+    } else {
+        return result & PL_unify_pointer(res_t, res);
+    }
+}
+
 static foreign_t ldap4pl_initialize(term_t ldap_t, term_t uri_t) {
     if (!PL_is_variable(ldap_t)) {
         return PL_uninstantiation_error(ldap_t);
@@ -824,6 +918,13 @@ static foreign_t ldap4pl_msgid(term_t msg_t, term_t id_t) {
     }
 
     return PL_unify_integer(id_t, result);
+}
+
+static foreign_t ldap4pl_search_ext(term_t ldap_t, term_t base_t, term_t scope_t, term_t filter_t,
+                                    term_t attrs_t, term_t attrsonly_t, term_t serverctrls_t,
+                                    term_t clientctrls_t, term_t timeout_t, term_t sizelimit_t,
+                                    term_t msgid_t) {
+    
 }
 
 static void init_constants() {
