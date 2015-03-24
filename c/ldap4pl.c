@@ -660,11 +660,11 @@ int ldap4pl_search_ext0(term_t ldap_t, term_t base_t, term_t scope_t, term_t fil
         }
     }
     int attrsonly;
-    if (!PL_get_integer(attrsonly_t, &attrsonly)) {
+    if (!PL_get_bool(attrsonly_t, &attrsonly)) {
         free(attrs);
         return PL_type_error("atom", attrsonly_t);
     }
-    
+
     int sctrls_size;
     LDAPControl** sctrls;
     if (!build_LDAPControl_array(sctrls_t, &sctrls, &sctrls_size)) {
@@ -690,7 +690,7 @@ int ldap4pl_search_ext0(term_t ldap_t, term_t base_t, term_t scope_t, term_t fil
         }
         free(timeout);
     }
-    
+
     int sizelimit;
     if (!PL_get_integer(sizelimit_t, &sizelimit)) {
         free_LDAPControl_array(cctrls, cctrls_size);
