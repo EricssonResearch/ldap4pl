@@ -47,6 +47,17 @@ static atom_t ATOM_ldap_res_compare;
 static atom_t ATOM_ldap_res_extended;
 static atom_t ATOM_ldap_res_intermediate;
 
+static atom_t ATOM_query;
+static atom_t ATOM_base;
+static atom_t ATOM_scope;
+static atom_t ATOM_filter;
+static atom_t ATOM_attrs;
+static atom_t ATOM_attrsonly;
+static atom_t ATOM_ldap_scope_base;
+static atom_t ATOM_ldap_scope_onelevel;
+static atom_t ATOM_ldap_scope_subtree;
+static atom_t ATOM_ldap_scope_children;
+
 int get_list_size(term_t list, int* size) {
     int _size = 0;
     *size = _size;
@@ -401,6 +412,102 @@ int build_chars_array(term_t array_t, char*** array) {
     return TRUE;
 }
 
+/*
+ * berval(bv_len(12), bv_val(atom))
+ */
+int build_query_conditions(term_t query_t, char** base, int* scope, char** filter, char*** attrs, int* attrsonly) {
+    atom_t name;
+    int arity;
+    if (!PL_get_compound_name_arity(query_t, &name, &arity)) {
+        PL_type_error("compound", query_t);
+        goto error;
+    }
+
+    if (name != ATOM_query) {
+        PL_domain_error(PL_atom_chars(name), name);
+        goto error;
+    }
+
+    for (int i = 1; i <= arity; ++i) {
+        term_t arg_t = PL_new_term_ref();
+        if (!PL_get_arg(i, query_t, arg_t)) {
+            PL_type_error("compound", query_t);
+            goto error;
+        }
+
+        atom_t arg_name;
+        int arity1;
+        if (!PL_get_compound_name_arity(arg_t, &arg_name, &arity1)) {
+            PL_type_error("compound", arg_t);
+            goto error;
+        }
+
+        if (arg_name == ATOM_base) {
+            term_t base_t = PL_new_term_ref();
+            if (!PL_get_arg(1, arg_t, base_t)) {
+                PL_type_error("compound", arg_t);
+                goto error;
+            }
+            if (!PL_get_atom_chars(base_t, base)) {
+                PL_type_error("atom", base_t);
+                goto error;
+            }
+        } else if (arg_name == ATOM_scope) {
+            term_t scope_t = PL_new_term_ref();
+            if (!PL_get_arg(1, arg_t, scope_t)) {
+                PL_type_error("compound", arg_t);
+                goto error;
+            }
+            atom_t _scope;
+            if (!PL_get_atom(scope_t, &_scope)) {
+                PL_type_error("atom", scope_t);
+                goto error;
+            }
+            if (!map_scope(_scope, scope)) {
+                PL_domain_error("valid scope required", scope_t);
+                goto error;
+            }
+        } else if (arg_name == ATOM_filter) {
+            term_t filter_t = PL_new_term_ref();
+            if (!PL_get_arg(1, arg_t, filter_t)) {
+                PL_type_error("compound", arg_t);
+                goto error;
+            }
+            if (!PL_get_atom_chars(filter_t, filter)) {
+                PL_type_error("atom", filter_t);
+                goto error;
+            }
+        } else if (arg_name == ATOM_attrs) {
+            term_t attrs_t = PL_new_term_ref();
+            if (!PL_get_arg(1, arg_t, attrs_t)) {
+                PL_type_error("compound", arg_t);
+                goto error;
+            }
+            if (!PL_is_variable(attrs_t)) {
+                if (!build_chars_array(attrs_t, attrs)) {
+                    goto error;
+                }
+            }
+        } else if (arg_name == ATOM_attrsonly) {
+            term_t attrsonly_t = PL_new_term_ref();
+            if (!PL_get_arg(1, arg_t, attrsonly_t)) {
+                PL_type_error("compound", arg_t);
+                goto error;
+            }
+            if (!PL_get_bool(attrsonly_t, attrsonly)) {
+                PL_type_error("atom", attrsonly_t);
+                goto error;
+            }
+        }
+    }
+
+    return TRUE;
+
+error:
+    free(*attrs);
+    return FALSE;
+}
+
 int map_option(atom_t option, int* option_int) {
     int result = TRUE;
     if (option == ATOM_ldap_opt_protocol_version) {
@@ -458,6 +565,22 @@ int map_msg_type(int type, term_t type_t) {
     default:
         return FALSE;
     }
+}
+
+int map_scope(atom_t scope, int* scope_int) {
+    int result = TRUE;
+    if (scope == ATOM_ldap_scope_base) {
+        *scope_int = LDAP_SCOPE_BASE;
+    } else if (scope == ATOM_ldap_scope_onelevel) {
+        *scope_int = LDAP_SCOPE_ONELEVEL;
+    } else if (scope == ATOM_ldap_scope_subtree) {
+        *scope_int = LDAP_SCOPE_SUBTREE;
+    } else if (scope == ATOM_ldap_scope_children) {
+        *scope_int = LDAP_SCOPE_CHILDREN;
+    } else {
+        result = FALSE;
+    }
+    return result;
 }
 
 int ldap4pl_unbind_ext0(term_t ldap_t, term_t sctrls_t, term_t cctrls_t, term_t msgid_t, int synchronous) {
@@ -624,8 +747,7 @@ int ldap4pl_sasl_bind0(term_t ldap_t, term_t dn_t, term_t mechanism_t,
     }
 }
 
-int ldap4pl_search_ext0(term_t ldap_t, term_t base_t, term_t scope_t, term_t filter_t,
-                        term_t attrs_t, term_t attrsonly_t, term_t sctrls_t,
+int ldap4pl_search_ext0(term_t ldap_t, term_t query_t, term_t sctrls_t,
                         term_t cctrls_t, term_t timeout_t, term_t sizelimit_t,
                         term_t msgid_t, term_t res_t, int synchronous) {
     if (!synchronous && !PL_is_variable(msgid_t)) {
@@ -641,28 +763,18 @@ int ldap4pl_search_ext0(term_t ldap_t, term_t base_t, term_t scope_t, term_t fil
         return PL_type_error("pointer", ldap_t);
     }
 
-    char* base;
-    if (!PL_get_atom_chars(base_t, &base)) {
-        return PL_type_error("atom", base_t);
-    }
-    int scope;
-    if (!PL_get_integer(scope_t, &scope)) {
-        return PL_type_error("atom", scope_t);
-    }
+    char* base = NULL;
+    int scope = LDAP_SCOPE_DEFAULT;
     char* filter = NULL;
-    if (!PL_get_atom_chars(filter_t, &filter)) {
-        return PL_type_error("atom", filter_t);
-    }
     char** attrs = NULL;
-    if (!PL_is_variable(attrs_t)) {
-        if (!build_chars_array(attrs_t, &attrs)) {
-            return FALSE;
-        }
-    }
     int attrsonly;
-    if (!PL_get_bool(attrsonly_t, &attrsonly)) {
+    if (!build_query_conditions(query_t, &base, &scope, &filter, &attrs, &attrsonly)) {
+        return FALSE;
+    }
+
+    if (!base) {
         free(attrs);
-        return PL_type_error("atom", attrsonly_t);
+        return PL_domain_error("base is missing", query_t);
     }
 
     int sctrls_size;
@@ -946,19 +1058,17 @@ static foreign_t ldap4pl_msgid(term_t msg_t, term_t id_t) {
     return PL_unify_integer(id_t, result);
 }
 
-static foreign_t ldap4pl_search_ext(term_t ldap_t, term_t base_t, term_t scope_t, term_t filter_t,
-                                    term_t attrs_t, term_t attrsonly_t, term_t sctrls_t,
+static foreign_t ldap4pl_search_ext(term_t ldap_t, term_t query_t, term_t sctrls_t,
                                     term_t cctrls_t, term_t timeout_t, term_t sizelimit_t,
                                     term_t msgid_t) {
-    return ldap4pl_search_ext0(ldap_t, base_t, scope_t, filter_t, attrs_t, attrsonly_t, sctrls_t,
+    return ldap4pl_search_ext0(ldap_t, query_t, sctrls_t,
                                cctrls_t, timeout_t, sizelimit_t, msgid_t, (term_t) NULL, FALSE);
 }
 
-static foreign_t ldap4pl_search_ext_s(term_t ldap_t, term_t base_t, term_t scope_t, term_t filter_t,
-                                      term_t attrs_t, term_t attrsonly_t, term_t sctrls_t,
+static foreign_t ldap4pl_search_ext_s(term_t ldap_t, term_t query_t, term_t sctrls_t,
                                       term_t cctrls_t, term_t timeout_t, term_t sizelimit_t,
                                       term_t res_t) {
-    return ldap4pl_search_ext0(ldap_t, base_t, scope_t, filter_t, attrs_t, attrsonly_t, sctrls_t,
+    return ldap4pl_search_ext0(ldap_t, query_t, sctrls_t,
                                cctrls_t, timeout_t, sizelimit_t, (term_t) NULL, res_t, TRUE);
 }
 
@@ -995,6 +1105,17 @@ static void init_constants() {
     ATOM_ldap_res_extended = PL_new_atom("ldap_res_extended");
     ATOM_ldap_res_intermediate = PL_new_atom("ldap_res_intermediate");
 
+    ATOM_query = PL_new_atom("query");
+    ATOM_base = PL_new_atom("base");
+    ATOM_scope = PL_new_atom("scope");
+    ATOM_filter = PL_new_atom("filter");
+    ATOM_attrs = PL_new_atom("attrs");
+    ATOM_attrsonly = PL_new_atom("attrsonly");
+    ATOM_ldap_scope_base = PL_new_atom("ldap_scope_base");
+    ATOM_ldap_scope_onelevel = PL_new_atom("ldap_scope_onelevel");
+    ATOM_ldap_scope_subtree = PL_new_atom("ldap_scope_subtree");
+    ATOM_ldap_scope_children = PL_new_atom("ldap_scope_children");
+
     FUNCTOR_berval = PL_new_functor(ATOM_berval, 2);
     FUNCTOR_bv_len = PL_new_functor(ATOM_bv_len, 1);
     FUNCTOR_bv_val = PL_new_functor(ATOM_bv_val, 1);
@@ -1018,6 +1139,6 @@ install_t install_ldap4pl() {
     PL_register_foreign("ldap4pl_msgfree", 1, ldap4pl_msgfree, 0);
     PL_register_foreign("ldap4pl_msgtype", 2, ldap4pl_msgtype, 0);
     PL_register_foreign("ldap4pl_msgid", 2, ldap4pl_msgid, 0);
-    PL_register_foreign("ldap4pl_search_ext", 11, ldap4pl_search_ext, 0);
-    PL_register_foreign("ldap4pl_search_ext_s", 11, ldap4pl_search_ext_s, 0);
+    PL_register_foreign("ldap4pl_search_ext", 7, ldap4pl_search_ext, 0);
+    PL_register_foreign("ldap4pl_search_ext_s", 7, ldap4pl_search_ext_s, 0);
 }
