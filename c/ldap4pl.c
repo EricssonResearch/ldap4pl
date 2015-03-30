@@ -383,14 +383,16 @@ error:
 }
 
 int build_chars_array(term_t array_t, char*** array) {
-    int size;
-    if (!get_list_size(array_t, &size)) {
+    int _size;
+    if (!get_list_size(array_t, &_size)) {
         return FALSE;
     }
 
-    if (size == 0) {
+    if (_size == 0) {
         return TRUE;
     }
+
+    int size = _size + 1;
 
     char** _array = malloc(size * sizeof (char*));
     memset(_array, 0, sizeof (char*) * size);
@@ -407,7 +409,8 @@ int build_chars_array(term_t array_t, char*** array) {
     if (!PL_get_nil(tail)) {
         return PL_type_error("list", tail);
     }
-
+    _array[i] = NULL;
+    
     *array = _array;
     return TRUE;
 }
@@ -1077,6 +1080,29 @@ static foreign_t ldap4pl_search_ext_s(term_t ldap_t, term_t query_t, term_t sctr
                                cctrls_t, timeout_t, sizelimit_t, (term_t) NULL, res_t, TRUE);
 }
 
+static foreign_t ldap4pl_count_entries(term_t ldap_t, term_t res_t, term_t count_t) {
+    if (!PL_is_variable(count_t)) {
+        return PL_uninstantiation_error(count_t);
+    }
+
+    LDAP* ldap;
+    if (!PL_get_pointer(ldap_t, (void**) &ldap)) {
+        return PL_type_error("pointer", ldap_t);
+    }
+
+    LDAPMessage* res;
+    if (!PL_get_pointer(res_t, (void**) &res)) {
+        return PL_type_error("pointer", res_t);
+    }
+
+    int count;
+    if ((count = ldap_count_entries(ldap, res)) == -1) {
+        return FALSE;
+    }
+
+    return PL_unify_integer(count_t, count);
+}
+
 static void init_constants() {
     ATOM_timeval = PL_new_atom("timeval");
     ATOM_tv_sec = PL_new_atom("tv_sec");
@@ -1146,4 +1172,5 @@ install_t install_ldap4pl() {
     PL_register_foreign("ldap4pl_msgid", 2, ldap4pl_msgid, 0);
     PL_register_foreign("ldap4pl_search_ext", 7, ldap4pl_search_ext, 0);
     PL_register_foreign("ldap4pl_search_ext_s", 7, ldap4pl_search_ext_s, 0);
+    PL_register_foreign("ldap4pl_count_entries", 3, ldap4pl_count_entries, 0);
 }
