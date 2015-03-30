@@ -85,8 +85,8 @@ ldap_search_ext(LDAP, Query, SCtrls, CCtrls, Timeout, SizeLimit, MsgID) :-
 ldap_search_ext(LDAP, Query, SCtrls, CCtrls, SizeLimit, MsgID) :-
     ldap4pl_search_ext(LDAP, Query, SCtrls, CCtrls, _, SizeLimit, MsgID).
 
-ldap_search_ext_s(LDAP, Query, SCtrls, CCtrls, Timeout, SizeLimit, MsgID) :-
-    ldap4pl_search_ext_s(LDAP, Query, SCtrls, CCtrls, Timeout, SizeLimit, MsgID).
+ldap_search_ext_s(LDAP, Query, SCtrls, CCtrls, Timeout, SizeLimit, Result) :-
+    ldap4pl_search_ext_s(LDAP, Query, SCtrls, CCtrls, Timeout, SizeLimit, Result).
 
-ldap_search_ext_s(LDAP, Query, SCtrls, CCtrls, SizeLimit, MsgID) :-
-    ldap4pl_search_ext_s(LDAP, Query, SCtrls, CCtrls, _, SizeLimit, MsgID).
+ldap_search_ext_s(LDAP, Query, SCtrls, CCtrls, SizeLimit, Result) :-
+    ldap4pl_search_ext_s(LDAP, Query, SCtrls, CCtrls, _, SizeLimit, Result).

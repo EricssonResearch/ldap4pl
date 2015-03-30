@@ -413,7 +413,7 @@ int build_chars_array(term_t array_t, char*** array) {
 }
 
 /*
- * berval(bv_len(12), bv_val(atom))
+ * query(base(), scope(), filter(), attrs([]), attrsonly())
  */
 int build_query_conditions(term_t query_t, char** base, int* scope, char** filter, char*** attrs, int* attrsonly) {
     atom_t name;
@@ -594,13 +594,13 @@ int ldap4pl_unbind_ext0(term_t ldap_t, term_t sctrls_t, term_t cctrls_t, term_t 
     }
 
     int sctrls_size;
-    LDAPControl** sctrls;
+    LDAPControl** sctrls = NULL;
     if (!build_LDAPControl_array(sctrls_t, &sctrls, &sctrls_size)) {
         return FALSE;
     }
 
     int cctrls_size;
-    LDAPControl** cctrls;
+    LDAPControl** cctrls = NULL;
     if (!build_LDAPControl_array(cctrls_t, &cctrls, &cctrls_size)) {
         free_LDAPControl_array(sctrls, sctrls_size);
         return FALSE;
@@ -713,13 +713,13 @@ int ldap4pl_sasl_bind0(term_t ldap_t, term_t dn_t, term_t mechanism_t,
     }
     
     int sctrls_size;
-    LDAPControl** sctrls;
+    LDAPControl** sctrls = NULL;
     if (!build_LDAPControl_array(sctrls_t, &sctrls, &sctrls_size)) {
         return FALSE;
     }
 
     int cctrls_size;
-    LDAPControl** cctrls;
+    LDAPControl** cctrls = NULL;
     if (!build_LDAPControl_array(cctrls_t, &cctrls, &cctrls_size)) {
         free_LDAPControl_array(sctrls, sctrls_size);
         free(cred);
@@ -767,7 +767,7 @@ int ldap4pl_search_ext0(term_t ldap_t, term_t query_t, term_t sctrls_t,
     int scope = LDAP_SCOPE_DEFAULT;
     char* filter = NULL;
     char** attrs = NULL;
-    int attrsonly;
+    int attrsonly = -1;
     if (!build_query_conditions(query_t, &base, &scope, &filter, &attrs, &attrsonly)) {
         return FALSE;
     }
@@ -777,15 +777,20 @@ int ldap4pl_search_ext0(term_t ldap_t, term_t query_t, term_t sctrls_t,
         return PL_domain_error("base is missing", query_t);
     }
 
+    if (attrsonly == -1) {
+        free(attrs);
+        return PL_domain_error("attrsonly is missing", query_t);
+    }
+
     int sctrls_size;
-    LDAPControl** sctrls;
+    LDAPControl** sctrls = NULL;
     if (!build_LDAPControl_array(sctrls_t, &sctrls, &sctrls_size)) {
         free(attrs);
         return FALSE;
     }
 
     int cctrls_size;
-    LDAPControl** cctrls;
+    LDAPControl** cctrls = NULL;
     if (!build_LDAPControl_array(cctrls_t, &cctrls, &cctrls_size)) {
         free_LDAPControl_array(sctrls, sctrls_size);
         free(attrs);
@@ -862,13 +867,13 @@ static foreign_t ldap4pl_unbind_ext(term_t ldap_t, term_t sctrls_t, term_t cctrl
     }
 
     int sctrls_size;
-    LDAPControl** sctrls;
+    LDAPControl** sctrls = NULL;
     if (!build_LDAPControl_array(sctrls_t, &sctrls, &sctrls_size)) {
         return FALSE;
     }
 
     int cctrls_size;
-    LDAPControl** cctrls;
+    LDAPControl** cctrls = NULL;
     if (!build_LDAPControl_array(cctrls_t, &cctrls, &cctrls_size)) {
         free_LDAPControl_array(sctrls, sctrls_size);
         return FALSE;
