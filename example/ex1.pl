@@ -26,13 +26,31 @@ search :-
     ldap_unbind(LDAP).
 
 iterate_entries(LDAP, Result) :-
-    ldap_first_entry(LDAP, Result, Entry),
-    debug(ex1, 'Entry ~w', [Entry]),
-    iterate_entries0(LDAP, Entry).
+    (   ldap_first_entry(LDAP, Result, Entry)
+    ->  debug(ex1, 'Entry ~w', [Entry]),
+        iterate_attributes(LDAP, Entry),
+        iterate_entries0(LDAP, Entry)
+    ;   true
+    ).
 
 iterate_entries0(LDAP, Entry) :-
     (   ldap_next_entry(LDAP, Entry, NextEntry)
-    ->  debug(ex1, 'Entry ~w', [Entry]),
+    ->  debug(ex1, 'Entry ~w', [NextEntry]),
+        iterate_attributes(LDAP, NextEntry),
         iterate_entries0(LDAP, NextEntry)
     ;   true
+    ).
+
+iterate_attributes(LDAP, Entry) :-
+    (   ldap_first_attribute(LDAP, Entry, Attribute, Ber)
+    ->  debug(ex1, 'Attribute ~w', [Attribute]),
+        iterate_attributes0(LDAP, Entry, Ber)
+    ;   true
+    ).
+
+iterate_attributes0(LDAP, Entry, Ber) :-
+    (   ldap_next_attribute(LDAP, Entry, Attribute, Ber)
+    ->  debug(ex1, 'Attribute ~w', [Attribute]),
+        iterate_attributes0(LDAP, Entry, Ber)
+    ;   ldap_ber_free(Ber, false)
     ).

@@ -1149,6 +1149,83 @@ static foreign_t ldap4pl_next_entry(term_t ldap_t, term_t entry_t, term_t next_e
     return PL_unify_pointer(next_entry_t, next_entry);
 }
 
+static foreign_t ldap4pl_first_attribute(term_t ldap_t, term_t entry_t, term_t attribute_t, term_t ber_t) {
+    if (!PL_is_variable(attribute_t)) {
+        return PL_uninstantiation_error(attribute_t);
+    }
+
+    if (!PL_is_variable(ber_t)) {
+        return PL_uninstantiation_error(ber_t);
+    }
+
+    LDAP* ldap;
+    if (!PL_get_pointer(ldap_t, (void**) &ldap)) {
+        return PL_type_error("pointer", ldap_t);
+    }
+
+    LDAPMessage* entry;
+    if (!PL_get_pointer(entry_t, (void**) &entry)) {
+        return PL_type_error("pointer", entry_t);
+    }
+
+    char* attribute;
+    BerElement* ber;
+    if (!(attribute = ldap_first_attribute(ldap, entry, &ber))) {
+        return FALSE;
+    }
+
+    int result = PL_unify_atom_chars(attribute_t, attribute) & PL_unify_pointer(ber_t, ber);
+    ldap_memfree(attribute);
+
+    return result;
+}
+
+static foreign_t ldap4pl_next_attribute(term_t ldap_t, term_t entry_t, term_t attribute_t, term_t ber_t) {
+    if (!PL_is_variable(attribute_t)) {
+        return PL_uninstantiation_error(attribute_t);
+    }
+
+    LDAP* ldap;
+    if (!PL_get_pointer(ldap_t, (void**) &ldap)) {
+        return PL_type_error("pointer", ldap_t);
+    }
+
+    LDAPMessage* entry;
+    if (!PL_get_pointer(entry_t, (void**) &entry)) {
+        return PL_type_error("pointer", entry_t);
+    }
+
+    BerElement* ber;
+    if (!PL_get_pointer(ber_t, (void**) &ber)) {
+        return PL_type_error("pointer", ber_t);
+    }
+
+    char* attribute;
+    if (!(attribute = ldap_next_attribute(ldap, entry, ber))) {
+        return FALSE;
+    }
+
+    int result = PL_unify_atom_chars(attribute_t, attribute);
+    ldap_memfree(attribute);
+
+    return result;
+}
+
+static foreign_t ldap4pl_ber_free(term_t ber_t, term_t freebuf_t) {   
+    BerElement* ber;
+    if (!PL_get_pointer(ber_t, (void**) &ber)) {
+        return PL_type_error("pointer", ber_t);
+    }
+
+    int freebuf;
+    if (!PL_get_bool(freebuf_t, &freebuf)) {
+        return PL_type_error("bool", freebuf_t);
+    }
+
+    ber_free(ber, freebuf);
+    return TRUE;
+}
+
 static void init_constants() {
     ATOM_timeval = PL_new_atom("timeval");
     ATOM_tv_sec = PL_new_atom("tv_sec");
@@ -1221,4 +1298,7 @@ install_t install_ldap4pl() {
     PL_register_foreign("ldap4pl_count_entries", 3, ldap4pl_count_entries, 0);
     PL_register_foreign("ldap4pl_first_entry", 3, ldap4pl_first_entry, 0);
     PL_register_foreign("ldap4pl_next_entry", 3, ldap4pl_next_entry, 0);
+    PL_register_foreign("ldap4pl_first_attribute", 4, ldap4pl_first_attribute, 0);
+    PL_register_foreign("ldap4pl_next_attribute", 4, ldap4pl_next_attribute, 0);
+    PL_register_foreign("ldap4pl_ber_free", 2, ldap4pl_ber_free, 0);
 }

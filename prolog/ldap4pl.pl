@@ -23,7 +23,10 @@
     ldap_search_ext_s/6,
     ldap_count_entries/3,
     ldap_first_entry/3,
-    ldap_next_entry/3
+    ldap_next_entry/3,
+    ldap_first_attribute/4,
+    ldap_next_attribute/4,
+    ldap_ber_free/2
 ]).
 
 :- use_foreign_library(foreign(ldap4pl)).
@@ -102,3 +105,12 @@ ldap_first_entry(LDAP, Result, Entry) :-
 
 ldap_next_entry(LDAP, Entry, NextEntry) :-
     ldap4pl_next_entry(LDAP, Entry, NextEntry).
+
+ldap_first_attribute(LDAP, Entry, Attribute, Ber) :-
+    ldap4pl_first_attribute(LDAP, Entry, Attribute, Ber).
+
+ldap_next_attribute(LDAP, Entry, Attribute, Ber) :-
+    ldap4pl_next_attribute(LDAP, Entry, Attribute, Ber).
+
+ldap_ber_free(Ber, FreeBuf) :-
+    ldap4pl_ber_free(Ber, FreeBuf).
