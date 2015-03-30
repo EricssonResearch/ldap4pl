@@ -21,5 +21,18 @@ search :-
     debug(ex1, 'Result ~w', [Result]),
     ldap_count_entries(LDAP, Result, Count),
     debug(ex1, 'Count ~w', [Count]),
+    iterate_entries(LDAP, Result),
     ldap_msgfree(Result),
     ldap_unbind(LDAP).
+
+iterate_entries(LDAP, Result) :-
+    ldap_first_entry(LDAP, Result, Entry),
+    debug(ex1, 'Entry ~w', [Entry]),
+    iterate_entries0(LDAP, Entry).
+
+iterate_entries0(LDAP, Entry) :-
+    (   ldap_next_entry(LDAP, Entry, NextEntry)
+    ->  debug(ex1, 'Entry ~w', [Entry]),
+        iterate_entries0(LDAP, NextEntry)
+    ;   true
+    ).

@@ -21,7 +21,9 @@
     ldap_search_ext/6,
     ldap_search_ext_s/7,
     ldap_search_ext_s/6,
-    ldap_count_entries/3
+    ldap_count_entries/3,
+    ldap_first_entry/3,
+    ldap_next_entry/3
 ]).
 
 :- use_foreign_library(foreign(ldap4pl)).
@@ -94,3 +96,9 @@ ldap_search_ext_s(LDAP, Query, SCtrls, CCtrls, SizeLimit, Result) :-
 
 ldap_count_entries(LDAP, Result, Count) :-
     ldap4pl_count_entries(LDAP, Result, Count).
+
+ldap_first_entry(LDAP, Result, Entry) :-
+    ldap4pl_first_entry(LDAP, Result, Entry).
+
+ldap_next_entry(LDAP, Entry, NextEntry) :-
+    ldap4pl_next_entry(LDAP, Entry, NextEntry).

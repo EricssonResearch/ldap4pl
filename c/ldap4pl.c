@@ -73,6 +73,81 @@ int get_list_size(term_t list, int* size) {
     return TRUE;
 }
 
+int map_option(atom_t option, int* option_int) {
+    int result = TRUE;
+    if (option == ATOM_ldap_opt_protocol_version) {
+        *option_int = LDAP_OPT_PROTOCOL_VERSION;
+    } else {
+        result = FALSE;
+    }
+    return result;
+}
+
+int map_auth_method(atom_t method, int* method_int) {
+    int result = TRUE;
+    if (method == ATOM_ldap_auth_none) {
+        *method_int = LDAP_AUTH_NONE;
+    } else if (method == ATOM_ldap_auth_simple) {
+        *method_int = LDAP_AUTH_SIMPLE;
+    } else if (method == ATOM_ldap_auth_sasl) {
+        *method_int = LDAP_AUTH_SASL;
+    } else if (method == ATOM_ldap_auth_krbv4) {
+        *method_int = LDAP_AUTH_KRBV4;
+    } else if (method == ATOM_ldap_auth_krbv41) {
+        *method_int = LDAP_AUTH_KRBV41;
+    } else if (method == ATOM_ldap_auth_krbv42) {
+        *method_int = LDAP_AUTH_KRBV42;
+    } else {
+        result = FALSE;
+    }
+    return result;
+}
+
+int map_msg_type(int type, term_t type_t) {
+    switch (type) {
+    case LDAP_RES_BIND:
+        return PL_unify_atom(type_t, ATOM_ldap_res_bind);
+    case LDAP_RES_SEARCH_ENTRY:
+        return PL_unify_atom(type_t, ATOM_ldap_res_search_entry);
+    case LDAP_RES_SEARCH_REFERENCE:
+        return PL_unify_atom(type_t, ATOM_ldap_res_search_reference);
+    case LDAP_RES_SEARCH_RESULT:
+        return PL_unify_atom(type_t, ATOM_ldap_res_search_result);
+    case LDAP_RES_MODIFY:
+        return PL_unify_atom(type_t, ATOM_ldap_res_modify);
+    case LDAP_RES_ADD:
+        return PL_unify_atom(type_t, ATOM_ldap_res_add);
+    case LDAP_RES_DELETE:
+        return PL_unify_atom(type_t, ATOM_ldap_res_delete);
+    case LDAP_RES_MODDN:
+        return PL_unify_atom(type_t, ATOM_ldap_res_moddn);
+    case LDAP_RES_COMPARE:
+        return PL_unify_atom(type_t, ATOM_ldap_res_compare);
+    case LDAP_RES_EXTENDED:
+        return PL_unify_atom(type_t, ATOM_ldap_res_extended);
+    case LDAP_RES_INTERMEDIATE:
+        return PL_unify_atom(type_t, ATOM_ldap_res_intermediate);
+    default:
+        return FALSE;
+    }
+}
+
+int map_scope(atom_t scope, int* scope_int) {
+    int result = TRUE;
+    if (scope == ATOM_ldap_scope_base) {
+        *scope_int = LDAP_SCOPE_BASE;
+    } else if (scope == ATOM_ldap_scope_onelevel) {
+        *scope_int = LDAP_SCOPE_ONELEVEL;
+    } else if (scope == ATOM_ldap_scope_subtree) {
+        *scope_int = LDAP_SCOPE_SUBTREE;
+    } else if (scope == ATOM_ldap_scope_children) {
+        *scope_int = LDAP_SCOPE_CHILDREN;
+    } else {
+        result = FALSE;
+    }
+    return result;
+}
+
 /*
  * berval(bv_len(12), bv_val(atom))
  */
@@ -509,81 +584,6 @@ int build_query_conditions(term_t query_t, char** base, int* scope, char** filte
 error:
     free(*attrs);
     return FALSE;
-}
-
-int map_option(atom_t option, int* option_int) {
-    int result = TRUE;
-    if (option == ATOM_ldap_opt_protocol_version) {
-        *option_int = LDAP_OPT_PROTOCOL_VERSION;
-    } else {
-        result = FALSE;
-    }
-    return result;
-}
-
-int map_auth_method(atom_t method, int* method_int) {
-    int result = TRUE;
-    if (method == ATOM_ldap_auth_none) {
-        *method_int = LDAP_AUTH_NONE;
-    } else if (method == ATOM_ldap_auth_simple) {
-        *method_int = LDAP_AUTH_SIMPLE;
-    } else if (method == ATOM_ldap_auth_sasl) {
-        *method_int = LDAP_AUTH_SASL;
-    } else if (method == ATOM_ldap_auth_krbv4) {
-        *method_int = LDAP_AUTH_KRBV4;
-    } else if (method == ATOM_ldap_auth_krbv41) {
-        *method_int = LDAP_AUTH_KRBV41;
-    } else if (method == ATOM_ldap_auth_krbv42) {
-        *method_int = LDAP_AUTH_KRBV42;
-    } else {
-        result = FALSE;
-    }
-    return result;
-}
-
-int map_msg_type(int type, term_t type_t) {
-    switch (type) {
-    case LDAP_RES_BIND:
-        return PL_unify_atom(type_t, ATOM_ldap_res_bind);
-    case LDAP_RES_SEARCH_ENTRY:
-        return PL_unify_atom(type_t, ATOM_ldap_res_search_entry);
-    case LDAP_RES_SEARCH_REFERENCE:
-        return PL_unify_atom(type_t, ATOM_ldap_res_search_reference);
-    case LDAP_RES_SEARCH_RESULT:
-        return PL_unify_atom(type_t, ATOM_ldap_res_search_result);
-    case LDAP_RES_MODIFY:
-        return PL_unify_atom(type_t, ATOM_ldap_res_modify);
-    case LDAP_RES_ADD:
-        return PL_unify_atom(type_t, ATOM_ldap_res_add);
-    case LDAP_RES_DELETE:
-        return PL_unify_atom(type_t, ATOM_ldap_res_delete);
-    case LDAP_RES_MODDN:
-        return PL_unify_atom(type_t, ATOM_ldap_res_moddn);
-    case LDAP_RES_COMPARE:
-        return PL_unify_atom(type_t, ATOM_ldap_res_compare);
-    case LDAP_RES_EXTENDED:
-        return PL_unify_atom(type_t, ATOM_ldap_res_extended);
-    case LDAP_RES_INTERMEDIATE:
-        return PL_unify_atom(type_t, ATOM_ldap_res_intermediate);
-    default:
-        return FALSE;
-    }
-}
-
-int map_scope(atom_t scope, int* scope_int) {
-    int result = TRUE;
-    if (scope == ATOM_ldap_scope_base) {
-        *scope_int = LDAP_SCOPE_BASE;
-    } else if (scope == ATOM_ldap_scope_onelevel) {
-        *scope_int = LDAP_SCOPE_ONELEVEL;
-    } else if (scope == ATOM_ldap_scope_subtree) {
-        *scope_int = LDAP_SCOPE_SUBTREE;
-    } else if (scope == ATOM_ldap_scope_children) {
-        *scope_int = LDAP_SCOPE_CHILDREN;
-    } else {
-        result = FALSE;
-    }
-    return result;
 }
 
 int ldap4pl_unbind_ext0(term_t ldap_t, term_t sctrls_t, term_t cctrls_t, term_t msgid_t, int synchronous) {
@@ -1103,6 +1103,52 @@ static foreign_t ldap4pl_count_entries(term_t ldap_t, term_t res_t, term_t count
     return PL_unify_integer(count_t, count);
 }
 
+static foreign_t ldap4pl_first_entry(term_t ldap_t, term_t res_t, term_t entry_t) {
+    if (!PL_is_variable(entry_t)) {
+        return PL_uninstantiation_error(entry_t);
+    }
+
+    LDAP* ldap;
+    if (!PL_get_pointer(ldap_t, (void**) &ldap)) {
+        return PL_type_error("pointer", ldap_t);
+    }
+
+    LDAPMessage* res;
+    if (!PL_get_pointer(res_t, (void**) &res)) {
+        return PL_type_error("pointer", res_t);
+    }
+
+    LDAPMessage* entry;
+    if (!(entry = ldap_first_entry(ldap, res))) {
+        return FALSE;
+    }
+
+    return PL_unify_pointer(entry_t, entry);
+}
+
+static foreign_t ldap4pl_next_entry(term_t ldap_t, term_t entry_t, term_t next_entry_t) {
+    if (!PL_is_variable(next_entry_t)) {
+        return PL_uninstantiation_error(next_entry_t);
+    }
+
+    LDAP* ldap;
+    if (!PL_get_pointer(ldap_t, (void**) &ldap)) {
+        return PL_type_error("pointer", ldap_t);
+    }
+
+    LDAPMessage* entry;
+    if (!PL_get_pointer(entry_t, (void**) &entry)) {
+        return PL_type_error("pointer", entry_t);
+    }
+
+    LDAPMessage* next_entry;
+    if (!(next_entry = ldap_next_entry(ldap, entry))) {
+        return FALSE;
+    }
+
+    return PL_unify_pointer(next_entry_t, next_entry);
+}
+
 static void init_constants() {
     ATOM_timeval = PL_new_atom("timeval");
     ATOM_tv_sec = PL_new_atom("tv_sec");
@@ -1173,4 +1219,6 @@ install_t install_ldap4pl() {
     PL_register_foreign("ldap4pl_search_ext", 7, ldap4pl_search_ext, 0);
     PL_register_foreign("ldap4pl_search_ext_s", 7, ldap4pl_search_ext_s, 0);
     PL_register_foreign("ldap4pl_count_entries", 3, ldap4pl_count_entries, 0);
+    PL_register_foreign("ldap4pl_first_entry", 3, ldap4pl_first_entry, 0);
+    PL_register_foreign("ldap4pl_next_entry", 3, ldap4pl_next_entry, 0);
 }
