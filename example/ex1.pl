@@ -14,7 +14,7 @@ search :-
             base('dc=cf,dc=ericsson,dc=net'),
             scope(ldap_scope_onelevel),
             filter('(objectClass=*)'),
-            attrs([objectClass]),
+%            attrs([objectClass, sambaDomainName]),
             attrsonly(false)
         ),
         [], [], 0, Result),
