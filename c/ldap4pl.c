@@ -65,6 +65,42 @@ static atom_t ATOM_ldap_scope_onelevel;
 static atom_t ATOM_ldap_scope_subtree;
 static atom_t ATOM_ldap_scope_children;
 
+static atom_t ATOM_ldap_success;
+static atom_t ATOM_ldap_operations_error;
+static atom_t ATOM_ldap_protocol_error;
+static atom_t ATOM_ldap_timelimit_exceeded;
+static atom_t ATOM_ldap_sizelimit_exceeded;
+static atom_t ATOM_ldap_compare_false;
+static atom_t ATOM_ldap_compare_true;
+static atom_t ATOM_ldap_strong_auth_not_supported;
+static atom_t ATOM_ldap_strong_auth_required;
+static atom_t ATOM_ldap_partial_results;
+static atom_t ATOM_ldap_no_such_attribute;
+static atom_t ATOM_ldap_undefined_type;
+static atom_t ATOM_ldap_inappropriate_matching;
+static atom_t ATOM_ldap_constraint_violation;
+static atom_t ATOM_ldap_type_or_value_exists;
+static atom_t ATOM_ldap_invalid_syntax;
+static atom_t ATOM_ldap_no_such_object;
+static atom_t ATOM_ldap_alias_problem;
+static atom_t ATOM_ldap_invalid_dn_syntax;
+static atom_t ATOM_ldap_is_leaf;
+static atom_t ATOM_ldap_alias_deref_problem;
+static atom_t ATOM_ldap_inappropriate_auth;
+static atom_t ATOM_ldap_invalid_credentials;
+static atom_t ATOM_ldap_insufficient_access;
+static atom_t ATOM_ldap_busy;
+static atom_t ATOM_ldap_unavailable;
+static atom_t ATOM_ldap_unwilling_to_perform;
+static atom_t ATOM_ldap_loop_detect;
+static atom_t ATOM_ldap_naming_violation;
+static atom_t ATOM_ldap_object_class_violation;
+static atom_t ATOM_ldap_not_allowed_on_nonleaf;
+static atom_t ATOM_ldap_not_allowed_on_rdn;
+static atom_t ATOM_ldap_already_exists;
+static atom_t ATOM_ldap_no_object_class_mods;
+static atom_t ATOM_ldap_other;
+
 int get_list_size(term_t list, int* size) {
     int _size = 0;
     *size = _size;
@@ -137,6 +173,161 @@ int map_msg_type(int type, term_t type_t) {
     default:
         PL_fail;
     }
+}
+
+int map_error_code(int errcode, term_t errcode_t) {
+    switch (errcode) {
+    case LDAP_SUCCESS:
+        return PL_unify_atom(errcode_t, ATOM_ldap_success);
+    case LDAP_OPERATIONS_ERROR:
+        return PL_unify_atom(errcode_t, ATOM_ldap_operations_error);
+    case LDAP_PROTOCOL_ERROR:
+        return PL_unify_atom(errcode_t, ATOM_ldap_protocol_error);
+    case LDAP_TIMELIMIT_EXCEEDED:
+        return PL_unify_atom(errcode_t, ATOM_ldap_timelimit_exceeded);
+    case LDAP_SIZELIMIT_EXCEEDED:
+        return PL_unify_atom(errcode_t, ATOM_ldap_sizelimit_exceeded);
+    case LDAP_COMPARE_FALSE:
+        return PL_unify_atom(errcode_t, ATOM_ldap_compare_false);
+    case LDAP_COMPARE_TRUE:
+        return PL_unify_atom(errcode_t, ATOM_ldap_compare_true);
+    case LDAP_STRONG_AUTH_NOT_SUPPORTED:
+        return PL_unify_atom(errcode_t, ATOM_ldap_strong_auth_not_supported);
+    case LDAP_STRONG_AUTH_REQUIRED:
+        return PL_unify_atom(errcode_t, ATOM_ldap_strong_auth_required);
+    case LDAP_PARTIAL_RESULTS:
+        return PL_unify_atom(errcode_t, ATOM_ldap_partial_results);
+    case LDAP_NO_SUCH_ATTRIBUTE:
+        return PL_unify_atom(errcode_t, ATOM_ldap_no_such_attribute);
+    case LDAP_UNDEFINED_TYPE:
+        return PL_unify_atom(errcode_t, ATOM_ldap_undefined_type);
+    case LDAP_INAPPROPRIATE_MATCHING:
+        return PL_unify_atom(errcode_t, ATOM_ldap_inappropriate_matching);
+    case LDAP_CONSTRAINT_VIOLATION:
+        return PL_unify_atom(errcode_t, ATOM_ldap_constraint_violation);
+    case LDAP_TYPE_OR_VALUE_EXISTS:
+        return PL_unify_atom(errcode_t, ATOM_ldap_type_or_value_exists);
+    case LDAP_INVALID_SYNTAX:
+        return PL_unify_atom(errcode_t, ATOM_ldap_invalid_syntax);
+    case LDAP_NO_SUCH_OBJECT:
+        return PL_unify_atom(errcode_t, ATOM_ldap_no_such_object);
+    case LDAP_ALIAS_PROBLEM:
+        return PL_unify_atom(errcode_t, ATOM_ldap_alias_problem);
+    case LDAP_INVALID_DN_SYNTAX:
+        return PL_unify_atom(errcode_t, ATOM_ldap_invalid_dn_syntax);
+    case LDAP_IS_LEAF:
+        return PL_unify_atom(errcode_t, ATOM_ldap_is_leaf);
+    case LDAP_ALIAS_DEREF_PROBLEM:
+        return PL_unify_atom(errcode_t, ATOM_ldap_alias_deref_problem);
+    case LDAP_INAPPROPRIATE_AUTH:
+        return PL_unify_atom(errcode_t, ATOM_ldap_inappropriate_auth);
+    case LDAP_INVALID_CREDENTIALS:
+        return PL_unify_atom(errcode_t, ATOM_ldap_invalid_credentials);
+    case LDAP_INSUFFICIENT_ACCESS:
+        return PL_unify_atom(errcode_t, ATOM_ldap_insufficient_access);
+    case LDAP_BUSY:
+        return PL_unify_atom(errcode_t, ATOM_ldap_busy);
+    case LDAP_UNAVAILABLE:
+        return PL_unify_atom(errcode_t, ATOM_ldap_unavailable);
+    case LDAP_UNWILLING_TO_PERFORM:
+        return PL_unify_atom(errcode_t, ATOM_ldap_unwilling_to_perform);
+    case LDAP_LOOP_DETECT:
+        return PL_unify_atom(errcode_t, ATOM_ldap_loop_detect);
+    case LDAP_NAMING_VIOLATION:
+        return PL_unify_atom(errcode_t, ATOM_ldap_naming_violation);
+    case LDAP_OBJECT_CLASS_VIOLATION:
+        return PL_unify_atom(errcode_t, ATOM_ldap_object_class_violation);
+    case LDAP_NOT_ALLOWED_ON_NONLEAF:
+        return PL_unify_atom(errcode_t, ATOM_ldap_not_allowed_on_nonleaf);
+    case LDAP_NOT_ALLOWED_ON_RDN:
+        return PL_unify_atom(errcode_t, ATOM_ldap_not_allowed_on_rdn);
+    case LDAP_ALREADY_EXISTS:
+        return PL_unify_atom(errcode_t, ATOM_ldap_already_exists);
+    case LDAP_NO_OBJECT_CLASS_MODS:
+        return PL_unify_atom(errcode_t, ATOM_ldap_no_object_class_mods);
+    case LDAP_OTHER:
+        return PL_unify_atom(errcode_t, ATOM_ldap_other);
+    default:
+        PL_fail;
+    }
+}
+
+int map_error_code_t(atom_t errcode, int* errcode_int) {
+    int result = TRUE;
+    if (errcode == ATOM_ldap_success) {
+        *errcode_int = LDAP_SUCCESS;
+    } else if (errcode == ATOM_ldap_operations_error) {
+        *errcode_int = LDAP_OPERATIONS_ERROR;
+    } else if (errcode == ATOM_ldap_protocol_error) {
+        *errcode_int = LDAP_PROTOCOL_ERROR;
+    } else if (errcode == ATOM_ldap_timelimit_exceeded) {
+        *errcode_int = LDAP_TIMELIMIT_EXCEEDED;
+    } else if (errcode == ATOM_ldap_sizelimit_exceeded) {
+        *errcode_int = LDAP_SIZELIMIT_EXCEEDED;
+    } else if (errcode == ATOM_ldap_compare_false) {
+        *errcode_int = LDAP_COMPARE_FALSE;
+    } else if (errcode == ATOM_ldap_compare_true) {
+        *errcode_int = LDAP_COMPARE_TRUE;
+    } else if (errcode == ATOM_ldap_strong_auth_not_supported) {
+        *errcode_int = LDAP_STRONG_AUTH_NOT_SUPPORTED;
+    } else if (errcode == ATOM_ldap_strong_auth_required) {
+        *errcode_int = LDAP_STRONG_AUTH_REQUIRED;
+    } else if (errcode == ATOM_ldap_partial_results) {
+        *errcode_int = LDAP_PARTIAL_RESULTS;
+    } else if (errcode == ATOM_ldap_no_such_attribute) {
+        *errcode_int = LDAP_NO_SUCH_ATTRIBUTE;
+    } else if (errcode == ATOM_ldap_undefined_type) {
+        *errcode_int = LDAP_UNDEFINED_TYPE;
+    } else if (errcode == ATOM_ldap_inappropriate_matching) {
+        *errcode_int = LDAP_INAPPROPRIATE_MATCHING;
+    } else if (errcode == ATOM_ldap_constraint_violation) {
+        *errcode_int = LDAP_CONSTRAINT_VIOLATION;
+    } else if (errcode == ATOM_ldap_type_or_value_exists) {
+        *errcode_int = LDAP_TYPE_OR_VALUE_EXISTS;
+    } else if (errcode == ATOM_ldap_invalid_syntax) {
+        *errcode_int = LDAP_INVALID_SYNTAX;
+    } else if (errcode == ATOM_ldap_no_such_object) {
+        *errcode_int = LDAP_NO_SUCH_OBJECT;
+    } else if (errcode == ATOM_ldap_alias_problem) {
+        *errcode_int = LDAP_ALIAS_PROBLEM;
+    } else if (errcode == ATOM_ldap_invalid_dn_syntax) {
+        *errcode_int = LDAP_INVALID_DN_SYNTAX;
+    } else if (errcode == ATOM_ldap_is_leaf) {
+        *errcode_int = LDAP_IS_LEAF;
+    } else if (errcode == ATOM_ldap_alias_deref_problem) {
+        *errcode_int = LDAP_ALIAS_DEREF_PROBLEM;
+    } else if (errcode == ATOM_ldap_inappropriate_auth) {
+        *errcode_int = LDAP_INAPPROPRIATE_AUTH;
+    } else if (errcode == ATOM_ldap_invalid_credentials) {
+        *errcode_int = LDAP_INVALID_CREDENTIALS;
+    } else if (errcode == ATOM_ldap_insufficient_access) {
+        *errcode_int = LDAP_INSUFFICIENT_ACCESS;
+    } else if (errcode == ATOM_ldap_busy) {
+        *errcode_int = LDAP_BUSY;
+    } else if (errcode == ATOM_ldap_unavailable) {
+        *errcode_int = LDAP_UNAVAILABLE;
+    } else if (errcode == ATOM_ldap_unwilling_to_perform) {
+        *errcode_int = LDAP_UNWILLING_TO_PERFORM;
+    } else if (errcode == ATOM_ldap_loop_detect) {
+        *errcode_int = LDAP_LOOP_DETECT;
+    } else if (errcode == ATOM_ldap_naming_violation) {
+        *errcode_int = LDAP_NAMING_VIOLATION;
+    } else if (errcode == ATOM_ldap_object_class_violation) {
+        *errcode_int = LDAP_OBJECT_CLASS_VIOLATION;
+    } else if (errcode == ATOM_ldap_not_allowed_on_nonleaf) {
+        *errcode_int = LDAP_NOT_ALLOWED_ON_NONLEAF;
+    } else if (errcode == ATOM_ldap_not_allowed_on_rdn) {
+        *errcode_int = LDAP_NOT_ALLOWED_ON_RDN;
+    } else if (errcode == ATOM_ldap_already_exists) {
+        *errcode_int = LDAP_ALREADY_EXISTS;
+    } else if (errcode == ATOM_ldap_no_object_class_mods) {
+        *errcode_int = LDAP_NO_OBJECT_CLASS_MODS;
+    } else if (errcode == ATOM_ldap_other) {
+        *errcode_int = LDAP_OTHER;
+    } else {
+        result = FALSE;
+    }
+    return result;
 }
 
 int map_scope(atom_t scope, int* scope_int) {
@@ -1458,7 +1649,7 @@ static foreign_t ldap4pl_parse_result(term_t ldap_t, term_t res_t, term_t errcod
         goto error;
     }
 
-    if (!PL_unify_integer(errcode_t, errcode)) {
+    if (!map_error_code(errcode, errcode_t)) {
         goto error;
     }
 
@@ -1498,6 +1689,25 @@ error:
     ldap_memvfree((void**) referrals);
     ldap_controls_free(sctrls);
     PL_fail;
+}
+
+static foreign_t ldap4pl_err2string(term_t errcode_t, term_t errstring_t) {
+    atom_t errcode;
+    if (!PL_get_atom(errcode_t, &errcode)) {
+        PL_type_error("atom", errcode_t);
+    }
+
+    int errcode_int;
+    if (!map_error_code_t(errcode, &errcode_int)) {
+        PL_fail;
+    }
+
+    char* errstring;
+    if (!(errstring = ldap_err2string(errcode_int))) {
+        PL_fail;
+    }
+
+    return PL_unify_atom_chars(errstring_t, errstring);
 }
 
 static void init_constants() {
@@ -1546,6 +1756,42 @@ static void init_constants() {
     ATOM_ldap_scope_subtree = PL_new_atom("ldap_scope_subtree");
     ATOM_ldap_scope_children = PL_new_atom("ldap_scope_children");
 
+    ATOM_ldap_success = PL_new_atom("ldap_success");
+    ATOM_ldap_operations_error = PL_new_atom("ldap_operations_error");
+    ATOM_ldap_protocol_error = PL_new_atom("ldap_protocol_error");
+    ATOM_ldap_timelimit_exceeded = PL_new_atom("ldap_timelimit_exceeded");
+    ATOM_ldap_sizelimit_exceeded = PL_new_atom("ldap_sizelimit_exceeded");
+    ATOM_ldap_compare_false = PL_new_atom("ldap_compare_false");
+    ATOM_ldap_compare_true = PL_new_atom("ldap_compare_true");
+    ATOM_ldap_strong_auth_not_supported = PL_new_atom("ldap_strong_auth_not_supported");
+    ATOM_ldap_strong_auth_required = PL_new_atom("ldap_strong_auth_required");
+    ATOM_ldap_partial_results = PL_new_atom("ldap_partial_results");
+    ATOM_ldap_no_such_attribute = PL_new_atom("ldap_no_such_attribute");
+    ATOM_ldap_undefined_type = PL_new_atom("ldap_undefined_type");
+    ATOM_ldap_inappropriate_matching = PL_new_atom("ldap_inappropriate_matching");
+    ATOM_ldap_constraint_violation = PL_new_atom("ldap_constraint_violation");
+    ATOM_ldap_type_or_value_exists = PL_new_atom("ldap_type_or_value_exists");
+    ATOM_ldap_invalid_syntax = PL_new_atom("ldap_invalid_syntax");
+    ATOM_ldap_no_such_object = PL_new_atom("ldap_no_such_object");
+    ATOM_ldap_alias_problem = PL_new_atom("ldap_alias_problem");
+    ATOM_ldap_invalid_dn_syntax = PL_new_atom("ldap_invalid_dn_syntax");
+    ATOM_ldap_is_leaf = PL_new_atom("ldap_is_leaf");
+    ATOM_ldap_alias_deref_problem = PL_new_atom("ldap_alias_deref_problem");
+    ATOM_ldap_inappropriate_auth = PL_new_atom("ldap_inappropriate_auth");
+    ATOM_ldap_invalid_credentials = PL_new_atom("ldap_invalid_credentials");
+    ATOM_ldap_insufficient_access = PL_new_atom("ldap_insufficient_access");
+    ATOM_ldap_busy = PL_new_atom("ldap_busy");
+    ATOM_ldap_unavailable = PL_new_atom("ldap_unavailable");
+    ATOM_ldap_unwilling_to_perform = PL_new_atom("ldap_unwilling_to_perform");
+    ATOM_ldap_loop_detect = PL_new_atom("ldap_loop_detect");
+    ATOM_ldap_naming_violation = PL_new_atom("ldap_naming_violation");
+    ATOM_ldap_object_class_violation = PL_new_atom("ldap_object_class_violation");
+    ATOM_ldap_not_allowed_on_nonleaf = PL_new_atom("ldap_not_allowed_on_nonleaf");
+    ATOM_ldap_not_allowed_on_rdn = PL_new_atom("ldap_not_allowed_on_rdn");
+    ATOM_ldap_already_exists = PL_new_atom("ldap_already_exists");
+    ATOM_ldap_no_object_class_mods = PL_new_atom("ldap_no_object_class_mods");
+    ATOM_ldap_other = PL_new_atom("ldap_other");
+
     FUNCTOR_bv_len = PL_new_functor(ATOM_bv_len, 1);
     FUNCTOR_bv_val = PL_new_functor(ATOM_bv_val, 1);
 
@@ -1589,4 +1835,5 @@ install_t install_ldap4pl() {
     PL_register_foreign("ldap4pl_get_values", 4, ldap4pl_get_values, 0);
     PL_register_foreign("ldap4pl_get_dn", 3, ldap4pl_get_dn, 0);
     PL_register_foreign("ldap4pl_parse_result", 8, ldap4pl_parse_result, 0);
+    PL_register_foreign("ldap4pl_err2string", 2, ldap4pl_err2string, 0);
 }

@@ -33,7 +33,8 @@
     ldap_ber_free/2,
     ldap_get_values/4,
     ldap_get_dn/3,
-    ldap_parse_result/8
+    ldap_parse_result/8,
+    ldap_err2string/2
 ]).
 
 :- use_foreign_library(foreign(ldap4pl)).
@@ -144,3 +145,6 @@ ldap_parse_result(LDAP, Result, ErrorCode, MatchedDN, ErrorMsg,
                   Referrals, SCtrls, FreeIt) :-
     ldap4pl_parse_result(LDAP, Result, ErrorCode, MatchedDN, ErrorMsg,
                          Referrals, SCtrls, FreeIt).
+
+ldap_err2string(ErrorCode, ErrorString) :-
+    ldap4pl_err2string(ErrorCode, ErrorString).
