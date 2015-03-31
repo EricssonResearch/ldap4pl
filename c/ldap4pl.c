@@ -354,33 +354,34 @@ error:
     PL_fail;
 }
 
-void free_LDAPControl_array(LDAPControl** array, int size) {
-    if (size) {
-        for (int i = 0; i < size; ++i) {
-            free(array[i]);
+void free_LDAPControl_array(LDAPControl** array) {
+    if (array) {
+        for (LDAPControl** i = array; *i; ++i) {
+            free(*i);
         }
         free(array);
     }
 }
 
-int build_LDAPControl_array(term_t ctrls_t, LDAPControl*** array, int* size) {
-    if (!get_list_size(ctrls_t, size)) {
+int build_LDAPControl_array(term_t ctrls_t, LDAPControl*** array) {
+    int size;
+    if (!get_list_size(ctrls_t, &size)) {
         PL_fail;
     }
 
-    if (*size == 0) {
+    if (size == 0) {
         PL_succeed;
     }
 
-    LDAPControl** _array = malloc((*size + 1) * sizeof (LDAPControl*));
-    memset(_array, 0, (*size + 1) * sizeof (LDAPControl*));
+    LDAPControl** _array = malloc((size + 1) * sizeof (LDAPControl*));
+    memset(_array, 0, (size + 1) * sizeof (LDAPControl*));
 
     term_t tail = PL_copy_term_ref(ctrls_t);
     term_t head = PL_new_term_ref();
     int i = 0;
     while (PL_get_list(tail, head, tail)) {
         if (!build_LDAPControl(head, &_array[i++])) {
-            free_LDAPControl_array(_array, i - 1);
+            free_LDAPControl_array(_array);
             PL_fail;
         }
     }
@@ -390,6 +391,10 @@ int build_LDAPControl_array(term_t ctrls_t, LDAPControl*** array, int* size) {
     _array[i] = NULL;
 
     *array = _array;
+    PL_succeed;
+}
+
+int build_LDAPControl_t_array(LDAPControl** array, term_t array_t) {
     PL_succeed;
 }
 
@@ -610,23 +615,21 @@ int ldap4pl_unbind_ext0(term_t ldap_t, term_t sctrls_t, term_t cctrls_t, term_t 
         return PL_type_error("pointer", ldap_t);
     }
 
-    int sctrls_size;
     LDAPControl** sctrls = NULL;
-    if (!build_LDAPControl_array(sctrls_t, &sctrls, &sctrls_size)) {
+    if (!build_LDAPControl_array(sctrls_t, &sctrls)) {
         PL_fail;
     }
 
-    int cctrls_size;
     LDAPControl** cctrls = NULL;
-    if (!build_LDAPControl_array(cctrls_t, &cctrls, &cctrls_size)) {
-        free_LDAPControl_array(sctrls, sctrls_size);
+    if (!build_LDAPControl_array(cctrls_t, &cctrls)) {
+        free_LDAPControl_array(sctrls);
         PL_fail;
     }
 
     int result = !synchronous ? ldap_unbind_ext(ldap, sctrls, cctrls) : !ldap_unbind_ext_s(ldap, sctrls, cctrls);
 
-    free_LDAPControl_array(sctrls, sctrls_size);
-    free_LDAPControl_array(cctrls, cctrls_size);
+    free_LDAPControl_array(sctrls);
+    free_LDAPControl_array(cctrls);
 
     if (!synchronous) {
         return result && PL_unify_integer(msgid_t, result);
@@ -729,16 +732,14 @@ int ldap4pl_sasl_bind0(term_t ldap_t, term_t dn_t, term_t mechanism_t,
         PL_fail;
     }
     
-    int sctrls_size;
     LDAPControl** sctrls = NULL;
-    if (!build_LDAPControl_array(sctrls_t, &sctrls, &sctrls_size)) {
+    if (!build_LDAPControl_array(sctrls_t, &sctrls)) {
         PL_fail;
     }
 
-    int cctrls_size;
     LDAPControl** cctrls = NULL;
-    if (!build_LDAPControl_array(cctrls_t, &cctrls, &cctrls_size)) {
-        free_LDAPControl_array(sctrls, sctrls_size);
+    if (!build_LDAPControl_array(cctrls_t, &cctrls)) {
+        free_LDAPControl_array(sctrls);
         free(cred);
         PL_fail;
     }
@@ -749,8 +750,8 @@ int ldap4pl_sasl_bind0(term_t ldap_t, term_t dn_t, term_t mechanism_t,
         !ldap_sasl_bind(ldap, dn, mechanism, cred, sctrls, cctrls, &msgid) :
         !ldap_sasl_bind_s(ldap, dn, mechanism, cred, sctrls, cctrls, &servercred);
 
-    free_LDAPControl_array(sctrls, sctrls_size);
-    free_LDAPControl_array(cctrls, cctrls_size);
+    free_LDAPControl_array(sctrls);
+    free_LDAPControl_array(cctrls);
     free(cred);
 
     if (!synchronous) {
@@ -799,17 +800,15 @@ int ldap4pl_search_ext0(term_t ldap_t, term_t query_t, term_t sctrls_t,
         return PL_domain_error("attrsonly is missing", query_t);
     }
 
-    int sctrls_size;
     LDAPControl** sctrls = NULL;
-    if (!build_LDAPControl_array(sctrls_t, &sctrls, &sctrls_size)) {
+    if (!build_LDAPControl_array(sctrls_t, &sctrls)) {
         free(attrs);
         PL_fail;
     }
 
-    int cctrls_size;
     LDAPControl** cctrls = NULL;
-    if (!build_LDAPControl_array(cctrls_t, &cctrls, &cctrls_size)) {
-        free_LDAPControl_array(sctrls, sctrls_size);
+    if (!build_LDAPControl_array(cctrls_t, &cctrls)) {
+        free_LDAPControl_array(sctrls);
         free(attrs);
         PL_fail;
     }
@@ -817,8 +816,8 @@ int ldap4pl_search_ext0(term_t ldap_t, term_t query_t, term_t sctrls_t,
     TimeVal* timeout = NULL;
     if (!PL_is_variable(timeout_t)) {
         if (!build_timeval(timeout_t, &timeout)) {
-            free_LDAPControl_array(cctrls, cctrls_size);
-            free_LDAPControl_array(sctrls, sctrls_size);
+            free_LDAPControl_array(cctrls);
+            free_LDAPControl_array(sctrls);
             free(attrs);
             PL_fail;
         }
@@ -827,8 +826,8 @@ int ldap4pl_search_ext0(term_t ldap_t, term_t query_t, term_t sctrls_t,
 
     int sizelimit;
     if (!PL_get_integer(sizelimit_t, &sizelimit)) {
-        free_LDAPControl_array(cctrls, cctrls_size);
-        free_LDAPControl_array(sctrls, sctrls_size);
+        free_LDAPControl_array(cctrls);
+        free_LDAPControl_array(sctrls);
         free(timeout);
         free(attrs);
         return PL_type_error("atom", sizelimit_t);
@@ -840,8 +839,8 @@ int ldap4pl_search_ext0(term_t ldap_t, term_t query_t, term_t sctrls_t,
         !ldap_search_ext(ldap, base, scope, filter, attrs, attrsonly, sctrls, cctrls, timeout, sizelimit, &msgid) :
         !ldap_search_ext_s(ldap, base, scope, filter, attrs, attrsonly, sctrls, cctrls, timeout, sizelimit, &res);
 
-    free_LDAPControl_array(sctrls, sctrls_size);
-    free_LDAPControl_array(cctrls, cctrls_size);
+    free_LDAPControl_array(sctrls);
+    free_LDAPControl_array(cctrls);
     free(timeout);
     free(attrs);
 
@@ -945,23 +944,21 @@ static foreign_t ldap4pl_unbind_ext(term_t ldap_t, term_t sctrls_t, term_t cctrl
         return PL_type_error("pointer", ldap_t);
     }
 
-    int sctrls_size;
     LDAPControl** sctrls = NULL;
-    if (!build_LDAPControl_array(sctrls_t, &sctrls, &sctrls_size)) {
+    if (!build_LDAPControl_array(sctrls_t, &sctrls)) {
         PL_fail;
     }
 
-    int cctrls_size;
     LDAPControl** cctrls = NULL;
-    if (!build_LDAPControl_array(cctrls_t, &cctrls, &cctrls_size)) {
-        free_LDAPControl_array(sctrls, sctrls_size);
+    if (!build_LDAPControl_array(cctrls_t, &cctrls)) {
+        free_LDAPControl_array(sctrls);
         PL_fail;
     }
 
     int result = ldap_unbind_ext(ldap, sctrls, cctrls);
 
-    free_LDAPControl_array(sctrls, sctrls_size);
-    free_LDAPControl_array(cctrls, cctrls_size);
+    free_LDAPControl_array(sctrls);
+    free_LDAPControl_array(cctrls);
 
     return result;
 }
@@ -1064,9 +1061,9 @@ static foreign_t ldap4pl_get_option(term_t ldap_t, term_t option_t, term_t outva
     PL_succeed;
 }
 
-static foreign_t ldap4pl_result(term_t ldap_t, term_t msgid_t, term_t all_t, term_t timeout_t, term_t result_t) {
-    if (!PL_is_variable(result_t)) {
-        return PL_uninstantiation_error(result_t);
+static foreign_t ldap4pl_result(term_t ldap_t, term_t msgid_t, term_t all_t, term_t timeout_t, term_t res_t) {
+    if (!PL_is_variable(res_t)) {
+        return PL_uninstantiation_error(res_t);
     }
 
     LDAP* ldap;
@@ -1102,7 +1099,7 @@ static foreign_t ldap4pl_result(term_t ldap_t, term_t msgid_t, term_t all_t, ter
         free(timeout);
     }
 
-    return PL_unify_pointer(result_t, result);
+    return PL_unify_pointer(res_t, result);
 }
 
 static foreign_t ldap4pl_msgfree(term_t msg_t) {
@@ -1369,6 +1366,95 @@ static foreign_t ldap4pl_get_dn(term_t ldap_t, term_t entry_t, term_t dn_t) {
     int result = PL_unify_atom_chars(dn_t, dn);
     ldap_memfree(dn);
     return result;
+}
+
+static foreign_t ldap4pl_parse_result(term_t ldap_t, term_t res_t, term_t errcode_t,
+                                      term_t matcheddn_t, term_t errmsg_t, term_t referrals_t,
+                                      term_t serverctrs_t, term_t freeit_t) {
+    if (!PL_is_variable(errcode_t)) {
+        return PL_uninstantiation_error(errcode_t);
+    }
+
+    if (!PL_is_variable(matcheddn_t)) {
+        return PL_uninstantiation_error(matcheddn_t);
+    }
+
+    if (!PL_is_variable(errmsg_t)) {
+        return PL_uninstantiation_error(errmsg_t);
+    }
+
+    if (!PL_is_variable(referrals_t)) {
+        return PL_uninstantiation_error(referrals_t);
+    }
+    if (!PL_is_variable(serverctrs_t)) {
+        return PL_uninstantiation_error(serverctrs_t);
+    }
+
+    LDAP* ldap;
+    if (!PL_get_pointer(ldap_t, (void**) &ldap)) {
+        return PL_type_error("pointer", ldap_t);
+    }    
+
+    LDAPMessage* result;
+    if (!PL_get_pointer(res_t, (void**) &result)) {
+        return PL_type_error("pointer", res_t);
+    }
+
+    int freeit;
+    if (!PL_get_bool(freeit_t, &freeit)) {
+        return PL_type_error("bool", freeit_t);
+    }
+
+    int errcode;
+    char* matcheddn = NULL;
+    char* errmsg = NULL;
+    char** referrals = NULL;
+    LDAPControl** serverctrs = NULL;
+    if (ldap_parse_result(ldap, result, &errcode, &matcheddn, &errmsg, &referrals,
+                          &serverctrs, freeit)) {
+        goto error;
+    }
+
+    if (!PL_unify_integer(errcode_t, errcode)) {
+        goto error;
+    }
+
+    if (matcheddn) {
+        if (!PL_unify_atom_chars(matcheddn_t, matcheddn)) {
+            goto error;
+        }
+    }
+
+    if (errmsg) {
+        if (!PL_unify_atom_chars(errmsg_t, errmsg)) {
+            goto error;
+        }
+    }
+
+    if (referrals) {
+        if (!build_chars_t_array(referrals, referrals_t)) {
+            goto error;
+        }
+    }
+
+    if (serverctrs) {
+        if (!build_LDAPControl_t_array(serverctrs, serverctrs_t)) {
+            goto error;
+        }
+    }
+
+    ldap_memfree(matcheddn);
+    ldap_memfree(errmsg);
+    ldap_memvfree((void**) referrals);
+    ldap_controls_free(serverctrs);
+    PL_succeed;
+
+error:
+    ldap_memfree(matcheddn);
+    ldap_memfree(errmsg);
+    ldap_memvfree((void**) referrals);
+    ldap_controls_free(serverctrs);
+    PL_fail;
 }
 
 static void init_constants() {
