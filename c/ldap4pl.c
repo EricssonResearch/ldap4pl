@@ -1349,6 +1349,27 @@ static foreign_t ldap4pl_get_values(term_t ldap_t, term_t entry_t, term_t attrib
     return result;
 }
 
+static foreign_t ldap4pl_get_dn(term_t ldap_t, term_t entry_t, term_t dn_t) {
+    if (!PL_is_variable(dn_t)) {
+        return PL_uninstantiation_error(dn_t);
+    }
+
+    LDAP* ldap;
+    if (!PL_get_pointer(ldap_t, (void**) &ldap)) {
+        return PL_type_error("pointer", ldap_t);
+    }
+
+    LDAPMessage* entry;
+    if (!PL_get_pointer(entry_t, (void**) &entry)) {
+        return PL_type_error("pointer", entry_t);
+    }
+
+    char* dn = ldap_get_dn(ldap, entry);
+    int result = PL_unify_atom_chars(dn_t, dn);
+    ldap_memfree(dn);
+    return result;
+}
+
 static void init_constants() {
     ATOM_timeval = PL_new_atom("timeval");
     ATOM_tv_sec = PL_new_atom("tv_sec");
@@ -1427,4 +1448,5 @@ install_t install_ldap4pl() {
     PL_register_foreign("ldap4pl_next_attribute", 4, ldap4pl_next_attribute, 0);
     PL_register_foreign("ldap4pl_ber_free", 2, ldap4pl_ber_free, 0);
     PL_register_foreign("ldap4pl_get_values", 4, ldap4pl_get_values, 0);
+    PL_register_foreign("ldap4pl_get_dn", 3, ldap4pl_get_dn, 0);
 }

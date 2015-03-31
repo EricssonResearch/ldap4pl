@@ -29,6 +29,8 @@ search :-
 iterate_entries(LDAP, Result) :-
     (   ldap_first_entry(LDAP, Result, Entry)
     ->  debug(ex1, 'Entry ~w', [Entry]),
+        ldap_get_dn(LDAP, Entry, DN),
+        debug(ex1, 'DN ~w', [DN]),
         iterate_attributes(LDAP, Entry),
         iterate_entries0(LDAP, Entry)
     ;   true
@@ -37,6 +39,8 @@ iterate_entries(LDAP, Result) :-
 iterate_entries0(LDAP, Entry) :-
     (   ldap_next_entry(LDAP, Entry, NextEntry)
     ->  debug(ex1, 'Entry ~w', [NextEntry]),
+        ldap_get_dn(LDAP, Entry, DN),
+        debug(ex1, 'DN ~w', [DN]),
         iterate_attributes(LDAP, NextEntry),
         iterate_entries0(LDAP, NextEntry)
     ;   true
