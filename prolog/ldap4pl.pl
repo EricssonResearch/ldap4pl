@@ -21,6 +21,9 @@
     ldap_search_ext/6,
     ldap_search_ext_s/7,
     ldap_search_ext_s/6,
+    ldap_search/3,
+    ldap_search_s/3,
+    ldap_search_st/4,
     ldap_count_entries/3,
     ldap_first_entry/3,
     ldap_next_entry/3,
@@ -97,6 +100,15 @@ ldap_search_ext_s(LDAP, Query, SCtrls, CCtrls, Timeout, SizeLimit, Result) :-
 
 ldap_search_ext_s(LDAP, Query, SCtrls, CCtrls, SizeLimit, Result) :-
     ldap4pl_search_ext_s(LDAP, Query, SCtrls, CCtrls, _, SizeLimit, Result).
+
+ldap_search(LDAP, Query, MsgID) :-
+    ldap4pl_search(LDAP, Query, _, MsgID).
+
+ldap_search_s(LDAP, Query, Result) :-
+    ldap4pl_search_s(LDAP, Query, _, Result).
+
+ldap_search_st(LDAP, Query, Timeout, Result) :-
+    ldap4pl_search_s(LDAP, Query, Timeout, Result).
 
 ldap_count_entries(LDAP, Result, Count) :-
     ldap4pl_count_entries(LDAP, Result, Count).

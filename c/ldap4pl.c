@@ -847,6 +847,68 @@ int ldap4pl_search_ext0(term_t ldap_t, term_t query_t, term_t sctrls_t,
     return result & (!synchronous ? PL_unify_integer(msgid_t, msgid) : PL_unify_pointer(res_t, res));
 }
 
+int ldap4pl_search0(term_t ldap_t, term_t query_t,
+                    term_t timeout_t, term_t msgid_t,
+                    term_t res_t, int synchronous) {
+    if (!synchronous && !PL_is_variable(msgid_t)) {
+        return PL_uninstantiation_error(msgid_t);
+    }
+
+    if (synchronous && !PL_is_variable(res_t)) {
+        return PL_uninstantiation_error(res_t);
+    }
+
+    LDAP* ldap;
+    if (!PL_get_pointer(ldap_t, (void**) &ldap)) {
+        return PL_type_error("pointer", ldap_t);
+    }
+
+    char* base = NULL;
+    int scope = LDAP_SCOPE_DEFAULT;
+    char* filter = NULL;
+    char** attrs = NULL;
+    int attrsonly = -1;
+    if (!build_query_conditions(query_t, &base, &scope, &filter, &attrs, &attrsonly)) {
+        PL_fail;
+    }
+
+    if (!base) {
+        free(attrs);
+        return PL_domain_error("base is missing", query_t);
+    }
+
+    if (attrsonly == -1) {
+        free(attrs);
+        return PL_domain_error("attrsonly is missing", query_t);
+    }
+
+    TimeVal* timeout = NULL;
+    if (!PL_is_variable(timeout_t)) {
+        if (!build_timeval(timeout_t, &timeout)) {
+            free(attrs);
+            PL_fail;
+        }
+        free(timeout);
+    }
+
+    int msgid;
+    LDAPMessage* res;
+    int result = !synchronous ?
+        ldap_search(ldap, base, scope, filter, attrs, attrsonly) :
+        (timeout == NULL ?
+         !ldap_search_s(ldap, base, scope, filter, attrs, attrsonly, &res) :
+         !ldap_search_st(ldap, base, scope, filter, attrs, attrsonly, timeout, &res));
+
+    free(timeout);
+    free(attrs);
+
+    if (!synchronous) {
+        return result & PL_unify_integer(msgid_t, result);
+    } else {
+        return result & PL_unify_pointer(res_t, res);
+    }
+}
+
 static foreign_t ldap4pl_initialize(term_t ldap_t, term_t uri_t) {
     if (!PL_is_variable(ldap_t)) {
         return PL_uninstantiation_error(ldap_t);
@@ -1091,6 +1153,14 @@ static foreign_t ldap4pl_search_ext_s(term_t ldap_t, term_t query_t, term_t sctr
                                       term_t res_t) {
     return ldap4pl_search_ext0(ldap_t, query_t, sctrls_t,
                                cctrls_t, timeout_t, sizelimit_t, (term_t) NULL, res_t, TRUE);
+}
+
+static foreign_t ldap4pl_search(term_t ldap_t, term_t query_t, term_t timeout, term_t msgid_t) {
+    return ldap4pl_search0(ldap_t, query_t, timeout, msgid_t, (term_t) NULL, FALSE);
+}
+
+static foreign_t ldap4pl_search_s(term_t ldap_t, term_t query_t, term_t timeout, term_t res_t) {
+    return ldap4pl_search0(ldap_t, query_t, timeout, (term_t) NULL, res_t, TRUE);
 }
 
 static foreign_t ldap4pl_count_entries(term_t ldap_t, term_t res_t, term_t count_t) {
@@ -1347,6 +1417,8 @@ install_t install_ldap4pl() {
     PL_register_foreign("ldap4pl_msgid", 2, ldap4pl_msgid, 0);
     PL_register_foreign("ldap4pl_search_ext", 7, ldap4pl_search_ext, 0);
     PL_register_foreign("ldap4pl_search_ext_s", 7, ldap4pl_search_ext_s, 0);
+    PL_register_foreign("ldap4pl_search", 4, ldap4pl_search, 0);
+    PL_register_foreign("ldap4pl_search_s", 4, ldap4pl_search_s, 0);
     PL_register_foreign("ldap4pl_count_entries", 3, ldap4pl_count_entries, 0);
     PL_register_foreign("ldap4pl_first_entry", 3, ldap4pl_first_entry, 0);
     PL_register_foreign("ldap4pl_next_entry", 3, ldap4pl_next_entry, 0);
