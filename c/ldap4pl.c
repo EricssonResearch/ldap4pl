@@ -628,7 +628,7 @@ int ldap4pl_unbind_ext0(term_t ldap_t, term_t sctrls_t, term_t cctrls_t, term_t 
     free_LDAPControl_array(cctrls, cctrls_size);
 
     if (!synchronous) {
-        return result & PL_unify_integer(msgid_t, result);
+        return result && PL_unify_integer(msgid_t, result);
     } else {
         return result;
     }
@@ -665,7 +665,7 @@ int ldap4pl_bind0(term_t ldap_t, term_t who_t, term_t cred_t, term_t method_t, t
 
     int result = !synchronous ? ldap_bind(ldap, who, cred, method_int) : !ldap_bind_s(ldap, who, cred, method_int);
     if (!synchronous) {
-        return result & PL_unify_integer(msgid_t, result);
+        return result && PL_unify_integer(msgid_t, result);
     } else {
         return result;
     }
@@ -692,7 +692,7 @@ int ldap4pl_simple_bind0(term_t ldap_t, term_t who_t, term_t passwd_t, term_t ms
 
     int result = !synchronous ? ldap_simple_bind(ldap, who, passwd) : !ldap_simple_bind_s(ldap, who, passwd);
     if (!synchronous) {
-        return result & PL_unify_integer(msgid_t, result);
+        return result && PL_unify_integer(msgid_t, result);
     } else {
         return result;
     }
@@ -753,9 +753,9 @@ int ldap4pl_sasl_bind0(term_t ldap_t, term_t dn_t, term_t mechanism_t,
     free(cred);
 
     if (!synchronous) {
-        return result & PL_unify_integer(msgid_t, msgid);
+        return result && PL_unify_integer(msgid_t, msgid);
     } else {
-        int final_result = result & build_BerValue_t(servercred, servercred_t);
+        int final_result = result && build_BerValue_t(servercred, servercred_t);
         if (result) {
             ber_bvfree(servercred);
         }
@@ -844,7 +844,7 @@ int ldap4pl_search_ext0(term_t ldap_t, term_t query_t, term_t sctrls_t,
     free(timeout);
     free(attrs);
 
-    return result & (!synchronous ? PL_unify_integer(msgid_t, msgid) : PL_unify_pointer(res_t, res));
+    return result && (!synchronous ? PL_unify_integer(msgid_t, msgid) : PL_unify_pointer(res_t, res));
 }
 
 int ldap4pl_search0(term_t ldap_t, term_t query_t,
@@ -903,9 +903,9 @@ int ldap4pl_search0(term_t ldap_t, term_t query_t,
     free(attrs);
 
     if (!synchronous) {
-        return result & PL_unify_integer(msgid_t, result);
+        return result && PL_unify_integer(msgid_t, result);
     } else {
-        return result & PL_unify_pointer(res_t, res);
+        return result && PL_unify_pointer(res_t, res);
     }
 }
 

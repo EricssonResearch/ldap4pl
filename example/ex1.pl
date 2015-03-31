@@ -9,7 +9,7 @@ search :-
     debug(ex1, 'LDAP ~w', [LDAP]),
     ldap_set_option(LDAP, ldap_opt_protocol_version, 3),
     ldap_simple_bind_s(LDAP, 'cn=admin,dc=cf,dc=ericsson,dc=net', s3cret),
-    ldap_search_s(LDAP,
+    ldap_search(LDAP,
         query(
             base('dc=cf,dc=ericsson,dc=net'),
             scope(ldap_scope_onelevel),
@@ -17,7 +17,8 @@ search :-
 %            attrs([objectClass, sambaDomainName]),
             attrsonly(false)
         ),
-        Result),
+        MsgId),
+    ldap_result(LDAP, MsgId, true, Result),
     debug(ex1, 'Result ~w', [Result]),
     ldap_count_entries(LDAP, Result, Count),
     debug(ex1, 'Count ~w', [Count]),
