@@ -26,7 +26,8 @@
     ldap_next_entry/3,
     ldap_first_attribute/4,
     ldap_next_attribute/4,
-    ldap_ber_free/2
+    ldap_ber_free/2,
+    ldap_get_values/4
 ]).
 
 :- use_foreign_library(foreign(ldap4pl)).
@@ -114,3 +115,6 @@ ldap_next_attribute(LDAP, Entry, Attribute, Ber) :-
 
 ldap_ber_free(Ber, FreeBuf) :-
     ldap4pl_ber_free(Ber, FreeBuf).
+
+ldap_get_values(LDAP, Entry, Attribute, Values) :-
+    ldap4pl_get_values(LDAP, Entry, Attribute, Values).

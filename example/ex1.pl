@@ -44,6 +44,8 @@ iterate_entries0(LDAP, Entry) :-
 iterate_attributes(LDAP, Entry) :-
     (   ldap_first_attribute(LDAP, Entry, Attribute, Ber)
     ->  debug(ex1, 'Attribute ~w', [Attribute]),
+        ldap_get_values(LDAP, Entry, Attribute, Values),
+        debug(ex1, 'Values ~w', [Values]),
         iterate_attributes0(LDAP, Entry, Ber)
     ;   true
     ).
@@ -51,6 +53,8 @@ iterate_attributes(LDAP, Entry) :-
 iterate_attributes0(LDAP, Entry, Ber) :-
     (   ldap_next_attribute(LDAP, Entry, Attribute, Ber)
     ->  debug(ex1, 'Attribute ~w', [Attribute]),
+        ldap_get_values(LDAP, Entry, Attribute, Values),
+        debug(ex1, 'Values ~w', [Values]),
         iterate_attributes0(LDAP, Entry, Ber)
     ;   ldap_ber_free(Ber, false)
     ).
