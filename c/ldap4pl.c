@@ -372,8 +372,8 @@ int build_LDAPControl_array(term_t ctrls_t, LDAPControl*** array, int* size) {
         PL_succeed;
     }
 
-    LDAPControl** _array = malloc(*size * sizeof (LDAPControl*));
-    memset(_array, 0, sizeof (LDAPControl*) * (*size));
+    LDAPControl** _array = malloc((*size + 1) * sizeof (LDAPControl*));
+    memset(_array, 0, sizeof (LDAPControl*) * (*size + 1));
 
     term_t tail = PL_copy_term_ref(ctrls_t);
     term_t head = PL_new_term_ref();
@@ -387,6 +387,7 @@ int build_LDAPControl_array(term_t ctrls_t, LDAPControl*** array, int* size) {
     if (!PL_get_nil(tail)) {
         return PL_type_error("list", tail);
     }
+    _array[i] = NULL;
 
     *array = _array;
     PL_succeed;
