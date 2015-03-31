@@ -373,7 +373,7 @@ int build_LDAPControl_array(term_t ctrls_t, LDAPControl*** array, int* size) {
     }
 
     LDAPControl** _array = malloc((*size + 1) * sizeof (LDAPControl*));
-    memset(_array, 0, sizeof (LDAPControl*) * (*size + 1));
+    memset(_array, 0, (*size + 1) * sizeof (LDAPControl*));
 
     term_t tail = PL_copy_term_ref(ctrls_t);
     term_t head = PL_new_term_ref();
@@ -471,7 +471,7 @@ int build_chars_array(term_t array_t, char*** array) {
     int size = _size + 1;
 
     char** _array = malloc(size * sizeof (char*));
-    memset(_array, 0, sizeof (char*) * size);
+    memset(_array, 0, size * sizeof (char*));
 
     term_t tail = PL_copy_term_ref(array_t);
     term_t head = PL_new_term_ref();
@@ -491,13 +491,13 @@ int build_chars_array(term_t array_t, char*** array) {
     PL_succeed;
 }
 
-int build_chars_t_array(char** array, term_t array_t, int size) {
+int build_chars_t_array(char** array, term_t array_t) {
     term_t l = PL_copy_term_ref(array_t);
     term_t a = PL_new_term_ref();
 
-    for (int i = 0; i < size; ++i) {
+    for (char** i = array; *i; ++i) {
         if (!PL_unify_list(l, a, l) ||
-            !PL_unify_atom_chars(a, array[i]))
+            !PL_unify_atom_chars(a, *i))
             PL_fail;
     }
 
@@ -1337,12 +1337,13 @@ static foreign_t ldap4pl_get_values(term_t ldap_t, term_t entry_t, term_t attrib
     }
 
     int length = ldap_count_values_len(bervals);
-    char** values = (char**) malloc((length * sizeof (char*)));
+    char** values = malloc(((length + 1) * sizeof (char*)));
+    memset(values, 0, (length + 1) * sizeof (char*));
     for (int i = 0; i < length; ++i) {
         values[i] = bervals[i]->bv_val;
     }
 
-    int result = build_chars_t_array(values, values_t, length);
+    int result = build_chars_t_array(values, values_t);
     free(values);
     ldap_value_free_len(bervals);
 
