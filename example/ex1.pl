@@ -17,8 +17,8 @@ search :-
 %            attrs([objectClass, sambaDomainName]),
             attrsonly(false)
         ),
-        MsgId),
-    ldap_result(LDAP, MsgId, true, Result),
+        MsgID),
+    ldap_result(LDAP, MsgID, true, Result),
     debug(ex1, 'Result ~w', [Result]),
     ldap_parse_result(LDAP, Result, ErrorCode, MatchedDN, ErrorMsg, Referrals, SCtrls, false),
     debug(ex1, 'ErrorCode ~w', [ErrorCode]),
@@ -69,3 +69,17 @@ iterate_attributes0(LDAP, Entry, Ber) :-
         iterate_attributes0(LDAP, Entry, Ber)
     ;   ldap_ber_free(Ber, false)
     ).
+
+
+compare :-
+    ldap_initialize(LDAP, 'ldap://172.16.0.223:389'),
+    debug(ex1, 'LDAP ~w', [LDAP]),
+    ldap_set_option(LDAP, ldap_opt_protocol_version, 3),
+    DN = 'cn=admin,dc=cf,dc=ericsson,dc=net',
+    ldap_simple_bind_s(LDAP, DN, s3cret),
+    ldap_compare_ext(LDAP, DN, description, berval(bv_len(18), bv_val('LDAP administrator')), [], [], MsgID),
+    debug(ex1, 'MsgID ~w', [MsgID]),
+    ldap_result(LDAP, MsgID, true, Result),
+    ldap_parse_result(LDAP, Result, ErrorCode, _, _, _, _, true),
+    debug(ex1, 'Result ~w', [ErrorCode]),
+    ldap_unbind(LDAP).

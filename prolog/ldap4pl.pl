@@ -34,7 +34,11 @@
     ldap_get_values/4,
     ldap_get_dn/3,
     ldap_parse_result/8,
-    ldap_err2string/2
+    ldap_err2string/2,
+    ldap_compare_ext/7,
+    ldap_compare_ext_s/7,
+    ldap_compare/5,
+    ldap_compare_s/5
 ]).
 
 :- use_foreign_library(foreign(ldap4pl)).
@@ -148,3 +152,15 @@ ldap_parse_result(LDAP, Result, ErrorCode, MatchedDN, ErrorMsg,
 
 ldap_err2string(ErrorCode, ErrorString) :-
     ldap4pl_err2string(ErrorCode, ErrorString).
+
+ldap_compare_ext(LDAP, DN, Attribute, BerVal, SCtrls, CCtrls, MsgID) :-
+    ldap4pl_compare_ext(LDAP, DN, Attribute, BerVal, SCtrls, CCtrls, MsgID).
+
+ldap_compare_ext_s(LDAP, DN, Attribute, BerVal, SCtrls, CCtrls, Result) :-
+    ldap4pl_compare_ext_s(LDAP, DN, Attribute, BerVal, SCtrls, CCtrls, Result).
+
+ldap_compare(LDAP, DN, Attribute, Value, MsgID) :-
+    ldap4pl_compare(LDAP, DN, Attribute, Value, MsgID).
+
+ldap_compare_s(LDAP, DN, Attribute, Value, Result) :-
+    ldap4pl_compare_s(LDAP, DN, Attribute, Value, Result).

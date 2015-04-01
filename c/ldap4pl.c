@@ -252,7 +252,7 @@ int map_error_code(int errcode, term_t errcode_t) {
     }
 }
 
-int map_error_code_t(atom_t errcode, int* errcode_int) {
+int map_error_code_atom(atom_t errcode, int* errcode_int) {
     int result = TRUE;
     if (errcode == ATOM_ldap_success) {
         *errcode_int = LDAP_SUCCESS;
@@ -1055,7 +1055,6 @@ int ldap4pl_search_ext0(term_t ldap_t, term_t query_t, term_t sctrls_t,
             free(attrs);
             PL_fail;
         }
-        free(timeout);
     }
 
     int sizelimit;
@@ -1122,7 +1121,6 @@ int ldap4pl_search0(term_t ldap_t, term_t query_t,
             free(attrs);
             PL_fail;
         }
-        free(timeout);
     }
 
     int msgid;
@@ -1140,6 +1138,109 @@ int ldap4pl_search0(term_t ldap_t, term_t query_t,
         return result && PL_unify_integer(msgid_t, result);
     } else {
         return result && PL_unify_pointer(res_t, res);
+    }
+}
+
+int ldap4pl_compare_ext0(term_t ldap_t, term_t dn_t, term_t attribute_t, term_t berval_t,
+                         term_t sctrls_t, term_t cctrls_t, term_t msgid_t, term_t res_t,
+                         int synchronous) {
+    if (!synchronous && !PL_is_variable(msgid_t)) {
+        return PL_uninstantiation_error(msgid_t);
+    }
+
+    if (synchronous && !PL_is_variable(res_t)) {
+        return PL_uninstantiation_error(res_t);
+    }
+
+    LDAP* ldap;
+    if (!PL_get_pointer(ldap_t, (void**) &ldap)) {
+        return PL_type_error("pointer", ldap_t);
+    }
+
+    char* dn;
+    if (!PL_get_atom_chars(dn_t, &dn)) {
+        return PL_type_error("atom", dn_t);
+    }
+
+    char* attribute;
+    if (!PL_get_atom_chars(attribute_t, &attribute)) {
+        return PL_type_error("atom", attribute_t);
+    }
+
+    BerValue* berval;
+    if (!build_BerValue(berval_t, &berval)) {
+        PL_fail;
+    }
+
+    LDAPControl** sctrls = NULL;
+    if (!build_LDAPControl_array(sctrls_t, &sctrls)) {
+        free(berval);
+        PL_fail;
+    }
+
+    LDAPControl** cctrls = NULL;
+    if (!build_LDAPControl_array(cctrls_t, &cctrls)) {
+        free_LDAPControl_array(sctrls);
+        free(berval);
+        PL_fail;
+    }
+
+    int msgid;
+    int result = !synchronous ?
+        !ldap_compare_ext(ldap, dn, attribute, berval, sctrls, cctrls, &msgid) :
+        ldap_compare_ext_s(ldap, dn, attribute, berval, sctrls, cctrls);
+
+    free_LDAPControl_array(sctrls);
+    free_LDAPControl_array(cctrls);
+    free(berval);
+
+    if (!synchronous) {
+        return result && PL_unify_integer(msgid_t, msgid);
+    } else {
+        return map_error_code(result, res_t);
+    }
+}
+
+int ldap4pl_compare0(term_t ldap_t, term_t dn_t,
+                     term_t attribute_t, term_t value_t, term_t msgid_t,
+                     term_t res_t, int synchronous) {
+    if (!synchronous && !PL_is_variable(msgid_t)) {
+        return PL_uninstantiation_error(msgid_t);
+    }
+
+    if (synchronous && !PL_is_variable(res_t)) {
+        return PL_uninstantiation_error(res_t);
+    }
+
+    LDAP* ldap;
+    if (!PL_get_pointer(ldap_t, (void**) &ldap)) {
+        return PL_type_error("pointer", ldap_t);
+    }
+
+    char* dn;
+    if (!PL_get_atom_chars(dn_t, &dn)) {
+        return PL_type_error("atom", dn_t);
+    }
+
+    char* attribute;
+    if (!PL_get_atom_chars(attribute_t, &attribute)) {
+        return PL_type_error("atom", attribute_t);
+    }
+
+    char* value;
+    if (!PL_get_atom_chars(value_t, &value)) {
+        return PL_type_error("atom", value_t);
+    }
+
+    int msgid;
+    int result = !synchronous ?
+        ldap_compare(ldap, dn, attribute, value) :
+        ldap_compare_s(ldap, dn, attribute, value);
+
+    if (!synchronous) {
+        return result && PL_unify_integer(msgid_t, result);
+    } else {
+        return map_error_code(result, res_t);
     }
 }
 
@@ -1698,7 +1799,7 @@ static foreign_t ldap4pl_err2string(term_t errcode_t, term_t errstring_t) {
     }
 
     int errcode_int;
-    if (!map_error_code_t(errcode, &errcode_int)) {
+    if (!map_error_code_atom(errcode, &errcode_int)) {
         PL_fail;
     }
 
@@ -1708,6 +1809,24 @@ static foreign_t ldap4pl_err2string(term_t errcode_t, term_t errstring_t) {
     }
 
     return PL_unify_atom_chars(errstring_t, errstring);
+}
+
+static foreign_t ldap4pl_compare_ext(term_t ldap_t, term_t dn_t, term_t attribute_t, term_t berval_t,
+                                     term_t sctrls_t, term_t cctrls_t, term_t msgid_t) {
+    return ldap4pl_compare_ext0(ldap_t, dn_t, attribute_t, berval_t, sctrls_t, cctrls_t, msgid_t, (term_t) NULL, FALSE);
+}
+
+static foreign_t ldap4pl_compare_ext_s(term_t ldap_t, term_t dn_t, term_t attribute_t, term_t berval_t,
+                                       term_t sctrls_t, term_t cctrls_t, term_t res_t) {
+    return ldap4pl_compare_ext0(ldap_t, dn_t, attribute_t, berval_t, sctrls_t, cctrls_t, (term_t) NULL, res_t, TRUE);
+}
+
+static foreign_t ldap4pl_compare(term_t ldap_t, term_t dn_t, term_t attribute_t, term_t value_t, term_t msgid_t) {
+    return ldap4pl_compare0(ldap_t, dn_t, attribute_t, value_t,  msgid_t, (term_t) NULL, FALSE);
+}
+
+static foreign_t ldap4pl_compare_s(term_t ldap_t, term_t dn_t, term_t attribute_t, term_t value_t, term_t res_t) {
+    return ldap4pl_compare0(ldap_t, dn_t, attribute_t, value_t, (term_t) NULL, res_t, TRUE);
 }
 
 static void init_constants() {
@@ -1836,4 +1955,8 @@ install_t install_ldap4pl() {
     PL_register_foreign("ldap4pl_get_dn", 3, ldap4pl_get_dn, 0);
     PL_register_foreign("ldap4pl_parse_result", 8, ldap4pl_parse_result, 0);
     PL_register_foreign("ldap4pl_err2string", 2, ldap4pl_err2string, 0);
+    PL_register_foreign("ldap4pl_compare_ext", 7, ldap4pl_compare_ext, 0);
+    PL_register_foreign("ldap4pl_compare_ext_s", 7, ldap4pl_compare_ext_s, 0);
+    PL_register_foreign("ldap4pl_compare", 5, ldap4pl_compare, 0);
+    PL_register_foreign("ldap4pl_compare_s", 5, ldap4pl_compare_s, 0);
 }
