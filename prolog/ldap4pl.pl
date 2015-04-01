@@ -40,7 +40,19 @@
     ldap_compare/5,
     ldap_compare_s/5,
     ldap_abandon_ext/4,
-    ldap_abandon/2
+    ldap_abandon/2,
+    ldap_add_ext/6,
+    ldap_add_ext_s/5,
+    ldap_add/4,
+    ldap_add_s/3,
+    ldap_modify_ext/6,
+    ldap_modify_ext_s/5,
+    ldap_modify/4,
+    ldap_modify_s/3,
+    ldap_delete_ext/5,
+    ldap_delete_ext_s/4,
+    ldap_delete/3,
+    ldap_delete_s/2
 ]).
 
 :- use_foreign_library(foreign(ldap4pl)).
@@ -171,4 +183,40 @@ ldap_abandon_ext(LDAP, MsgID, SCtrls, CCtrls) :-
     ldap4pl_abandon_ext(LDAP, MsgID, SCtrls, CCtrls).
 
 ldap_abandon(LDAP, MsgID) :-
-    ldap4pl_abandon(LDAP, MsgID).
+    ldap4pl_abandon_ext(LDAP, MsgID, [], []).
+
+ldap_add_ext(LDAP, DN, Attributes, SCtrls, CCtrls, MsgID) :-
+    ldap4pl_add_ext(LDAP, DN, Attributes, SCtrls, CCtrls, MsgID).
+
+ldap_add_ext_s(LDAP, DN, Attributes, SCtrls, CCtrls) :-
+    ldap4pl_add_ext_s(LDAP, DN, Attributes, SCtrls, CCtrls).
+
+ldap_add(LDAP, DN, Attributes, MsgID) :-
+    ldap4pl_add_ext(LDAP, DN, Attributes, [], [], MsgID).
+
+ldap_add_s(LDAP, DN, Attributes) :-
+    ldap4pl_add_ext_s(LDAP, DN, Attributes, [], []).
+
+ldap_modify_ext(LDAP, DN, Attributes, SCtrls, CCtrls, MsgID) :-
+    ldap4pl_modify_ext(LDAP, DN, Attributes, SCtrls, CCtrls, MsgID).
+
+ldap_modify_ext_s(LDAP, DN, Attributes, SCtrls, CCtrls) :-
+    ldap4pl_modify_ext_s(LDAP, DN, Attributes, SCtrls, CCtrls).
+
+ldap_modify(LDAP, DN, Attributes, MsgID) :-
+    ldap4pl_modify_ext(LDAP, DN, Attributes, [], [], MsgID).
+
+ldap_modify_s(LDAP, DN, Attributes) :-
+    ldap4pl_modify_ext_s(LDAP, DN, Attributes, [], []).
+
+ldap_delete_ext(LDAP, DN, SCtrls, CCtrls, MsgID) :-
+    ldap4pl_delete_ext(LDAP, DN, SCtrls, CCtrls, MsgID).
+
+ldap_delete_ext_s(LDAP, DN, SCtrls, CCtrls) :-
+    ldap4pl_delete_ext_s(LDAP, DN, SCtrls, CCtrls).
+
+ldap_delete(LDAP, DN, MsgID) :-
+    ldap4pl_delete_ext(LDAP, DN, [], [], MsgID).
+
+ldap_delete_s(LDAP, DN) :-
+    ldap4pl_delete_ext_s(LDAP, DN, [], []).

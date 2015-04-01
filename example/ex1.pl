@@ -78,9 +78,65 @@ compare :-
     DN = 'cn=admin,dc=cf,dc=ericsson,dc=net',
     ldap_simple_bind_s(LDAP, DN, s3cret),
     ldap_compare_ext(LDAP, DN, description, berval(bv_len(18), bv_val('LDAP administrator')), [], [], MsgID),
-    ldap_abandon_ext(LDAP, MsgID, [], []),
+%    ldap_abandon_ext(LDAP, MsgID, [], []),
     debug(ex1, 'MsgID ~w', [MsgID]),
     ldap_result(LDAP, MsgID, true, timeval(tv_sec(2), tv_usec(0)), Result),
     ldap_parse_result(LDAP, Result, ErrorCode, _, _, _, _, true),
     debug(ex1, 'Result ~w', [ErrorCode]),
+    ldap_unbind(LDAP).
+
+add :-
+    ldap_initialize(LDAP, 'ldap://172.16.0.223:389'),
+    debug(ex1, 'LDAP ~w', [LDAP]),
+    ldap_set_option(LDAP, ldap_opt_protocol_version, 3),
+    DN = 'cn=admin,dc=cf,dc=ericsson,dc=net',
+    ldap_simple_bind_s(LDAP, DN, s3cret),
+    DN1 = 'cn=test,ou=groups,dc=cf,dc=ericsson,dc=net',
+    ldap_add_s(LDAP, DN1, [
+        ldapmod(mod_op([ldap_mod_add]), mod_type(objectClass), mod_values([posixGroup, top])),
+        ldapmod(mod_op([ldap_mod_add]), mod_type(cn), mod_values([test])),
+        ldapmod(mod_op([ldap_mod_add]), mod_type(gidNumber), mod_values(['20000'])),
+        ldapmod(mod_op([ldap_mod_add]), mod_type(description), mod_values([hello]))
+    ]),
+    ldap_unbind(LDAP).
+
+add_bval :-
+    ldap_initialize(LDAP, 'ldap://172.16.0.223:389'),
+    debug(ex1, 'LDAP ~w', [LDAP]),
+    ldap_set_option(LDAP, ldap_opt_protocol_version, 3),
+    DN = 'cn=admin,dc=cf,dc=ericsson,dc=net',
+    ldap_simple_bind_s(LDAP, DN, s3cret),
+    DN1 = 'cn=test,ou=groups,dc=cf,dc=ericsson,dc=net',
+    ldap_add_s(LDAP, DN1, [
+        ldapmod(mod_op([ldap_mod_add, ldap_mod_bvalues]), mod_type(objectClass),
+            mod_bvalues([berval(bv_len(10), bv_val(posixGroup)), berval(bv_len(3), bv_val(top))])),
+        ldapmod(mod_op([ldap_mod_add, ldap_mod_bvalues]), mod_type(cn),
+            mod_bvalues([berval(bv_len(4), bv_val(test))])),
+        ldapmod(mod_op([ldap_mod_add, ldap_mod_bvalues]), mod_type(gidNumber),
+            mod_bvalues([berval(bv_len(5), bv_val('20000'))])),
+        ldapmod(mod_op([ldap_mod_add, ldap_mod_bvalues]), mod_type(description),
+            mod_bvalues([berval(bv_len(4), bv_val(test))]))
+    ]),
+    ldap_unbind(LDAP).
+
+modify :-
+    ldap_initialize(LDAP, 'ldap://172.16.0.223:389'),
+    debug(ex1, 'LDAP ~w', [LDAP]),
+    ldap_set_option(LDAP, ldap_opt_protocol_version, 3),
+    DN = 'cn=admin,dc=cf,dc=ericsson,dc=net',
+    ldap_simple_bind_s(LDAP, DN, s3cret),
+    ldap_modify_s(LDAP, DN, [ldapmod(mod_op([ldap_mod_add]), mod_type(street), mod_values([hello]))]),
+    ldap_modify_s(LDAP, DN, [ldapmod(mod_op([ldap_mod_delete]), mod_type(street), mod_values([hello]))]),
+    ldap_modify_s(LDAP, DN, [ldapmod(mod_op([ldap_mod_add]), mod_type(street), mod_values([hello]))]),
+    ldap_modify_s(LDAP, DN, [ldapmod(mod_op([ldap_mod_replace]), mod_type(street), mod_values([goodbye, world]))]),
+    ldap_unbind(LDAP).
+
+delete :-
+    ldap_initialize(LDAP, 'ldap://172.16.0.223:389'),
+    debug(ex1, 'LDAP ~w', [LDAP]),
+    ldap_set_option(LDAP, ldap_opt_protocol_version, 3),
+    DN = 'cn=admin,dc=cf,dc=ericsson,dc=net',
+    ldap_simple_bind_s(LDAP, DN, s3cret),
+    DN1 = 'cn=test,ou=groups,dc=cf,dc=ericsson,dc=net',
+    ldap_delete_s(LDAP, DN1),
     ldap_unbind(LDAP).

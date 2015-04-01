@@ -101,6 +101,17 @@ static atom_t ATOM_ldap_already_exists;
 static atom_t ATOM_ldap_no_object_class_mods;
 static atom_t ATOM_ldap_other;
 
+static atom_t ATOM_ldapmod;
+static atom_t ATOM_mod_op;
+static atom_t ATOM_mod_type;
+static atom_t ATOM_mod_bvalues;
+static atom_t ATOM_mod_values;
+static atom_t ATOM_ldap_mod_op;
+static atom_t ATOM_ldap_mod_add;
+static atom_t ATOM_ldap_mod_delete;
+static atom_t ATOM_ldap_mod_replace;
+static atom_t ATOM_ldap_mod_bvalues;
+
 int get_list_size(term_t list, int* size) {
     int _size = 0;
     *size = _size;
@@ -842,6 +853,255 @@ error:
     PL_fail;
 }
 
+void free_BerValue_array(BerValue** array) {
+    if (array) {
+        for (BerValue** i = array; *i; ++i) {
+            free(*i);
+        }
+        free(array);
+    }
+}
+
+void free_LDAPMod_array(LDAPMod** array) {
+    if (array) {
+        for (LDAPMod** i = array; *i; ++i) {
+            LDAPMod* mod = *i;
+            if (mod->mod_op & LDAP_MOD_BVALUES) {
+                free_BerValue_array(mod->mod_bvalues);
+            } else {
+                free(mod->mod_values);
+            }
+            free(mod);
+        }
+        free(array);
+    }
+}
+
+int build_mod_op(term_t mod_op_t, int* mod_op) {
+    term_t tail = PL_copy_term_ref(mod_op_t);
+    term_t head = PL_new_term_ref();
+    int _mod_op = 0;
+    while (PL_get_list(tail, head, tail)) {
+        atom_t op;
+        if (!PL_get_atom(head, &op)) {
+            return PL_type_error("atom", head);
+        }
+
+        int op_int;
+        if (op == ATOM_ldap_mod_add) {
+            op_int = LDAP_MOD_ADD;
+        } else if (op == ATOM_ldap_mod_delete) {
+            op_int = LDAP_MOD_DELETE;
+        } else if (op == ATOM_ldap_mod_replace) {
+            op_int = LDAP_MOD_REPLACE;
+        } else if (op == ATOM_ldap_mod_bvalues) {
+            op_int = LDAP_MOD_BVALUES;
+        } else {
+            PL_fail;
+        }
+
+        _mod_op |= op_int;
+    }
+    *mod_op = _mod_op;
+    PL_succeed;
+}
+
+int build_mod_bvalues(term_t mod_bvalues_t, BerValue*** array) {
+    int size;
+    if (!get_list_size(mod_bvalues_t, &size)) {
+        PL_fail;
+    }
+
+    if (size == 0) {
+        PL_succeed;
+    }
+
+    BerValue** _array = malloc((size + 1) * sizeof (BerValue*));
+    memset(_array, 0, (size + 1) * sizeof (BerValue*));
+
+    term_t tail = PL_copy_term_ref(mod_bvalues_t);
+    term_t head = PL_new_term_ref();
+    int i = 0;
+    while (PL_get_list(tail, head, tail)) {
+        if (!build_BerValue(head, &_array[i++])) {
+            free_BerValue_array(_array);
+            PL_fail;
+        }
+    }
+    if (!PL_get_nil(tail)) {
+        return PL_type_error("list", tail);
+    }
+    _array[i] = NULL;
+
+    *array = _array;
+    PL_succeed;
+}
+
+int build_mod_values(term_t mod_values_t, char*** array) {
+    int size;
+    if (!get_list_size(mod_values_t, &size)) {
+        PL_fail;
+    }
+
+    if (size == 0) {
+        PL_succeed;
+    }
+
+    char** _array = malloc((size + 1) * sizeof (char*));
+    memset(_array, 0, (size + 1) * sizeof (char*));
+
+    term_t tail = PL_copy_term_ref(mod_values_t);
+    term_t head = PL_new_term_ref();
+    int i = 0;
+    while (PL_get_list(tail, head, tail)) {
+        if (!PL_get_atom_chars(head, &_array[i++])) {
+            free(_array);
+            PL_fail;
+        }
+    }
+    if (!PL_get_nil(tail)) {
+        return PL_type_error("list", tail);
+    }
+    _array[i] = NULL;
+
+    *array = _array;
+    PL_succeed;
+}
+
+/*
+ * ldapmod(
+ *     mod_op([ldap_mod_add, ldap_mod_bvalues]),
+ *     mod_type(attr_name),
+ *     mod_bvalues([
+ *         berval(bv_len(5), bv_val(hello)),
+ *         berval(bv_len(5), bv_val(world))
+ *     ])
+ * )
+ */
+int build_LDAPMod(term_t ldapmod_t, LDAPMod** ldapmod) {
+    LDAPMod* _ldapmod = malloc(sizeof (LDAPMod));
+    memset(_ldapmod, 0, sizeof (LDAPMod));
+
+    atom_t name;
+    int arity;
+    if (!PL_get_compound_name_arity(ldapmod_t, &name, &arity)) {
+        PL_type_error("compound", ldapmod_t);
+        goto error;
+    }
+
+    if (name != ATOM_ldapmod) {
+        PL_domain_error(PL_atom_chars(name), name);
+        goto error;
+    }
+
+    for (int i = 1; i <= arity; ++i) {
+        term_t arg_t = PL_new_term_ref();
+        if (!PL_get_arg(i, ldapmod_t, arg_t)) {
+            PL_type_error("compound", ldapmod_t);
+            goto error;
+        }
+
+        atom_t arg_name;
+        int arity1;
+        if (!PL_get_compound_name_arity(arg_t, &arg_name, &arity1)) {
+            PL_type_error("compound", arg_t);
+            goto error;
+        }
+
+        if (arg_name == ATOM_mod_op) {
+            term_t mod_op_t = PL_new_term_ref();
+            if (!PL_get_arg(1, arg_t, mod_op_t)) {
+                PL_type_error("compound", arg_t);
+                goto error;
+            }
+
+            int mod_op;
+            if (!build_mod_op(mod_op_t, &mod_op)) {
+                goto error;
+            }
+
+            _ldapmod->mod_op = mod_op;
+        } else if (arg_name == ATOM_mod_type) {
+            term_t mod_type_t = PL_new_term_ref();
+            if (!PL_get_arg(1, arg_t, mod_type_t)) {
+                PL_type_error("compound", arg_t);
+                goto error;
+            }
+
+            char* mod_type;
+            if (!PL_get_atom_chars(mod_type_t, &mod_type)) {
+                PL_type_error("atom", mod_type_t);
+                goto error;
+            }
+
+            _ldapmod->mod_type = mod_type;
+        } else if (arg_name == ATOM_mod_bvalues) {
+            term_t mod_bvalues_t = PL_new_term_ref();
+            if (!PL_get_arg(1, arg_t, mod_bvalues_t)) {
+                PL_type_error("compound", arg_t);
+                goto error;
+            }
+
+            BerValue** _mod_bvalues;
+            if (!build_mod_bvalues(mod_bvalues_t, &_mod_bvalues)) {
+                goto error;
+            }
+            _ldapmod->mod_bvalues = _mod_bvalues;
+        }  else if (arg_name == ATOM_mod_values) {
+            term_t mod_values_t = PL_new_term_ref();
+            if (!PL_get_arg(1, arg_t, mod_values_t)) {
+                PL_type_error("compound", arg_t);
+                goto error;
+            }
+
+            char** _mod_values;
+            if (!build_mod_values(mod_values_t, &_mod_values)) {
+                goto error;
+            }
+
+            _ldapmod->mod_values = _mod_values;
+        }
+    }
+
+    *ldapmod = _ldapmod;
+    PL_succeed;
+
+error:
+    free(_ldapmod);
+    PL_fail;
+}
+
+int build_LDAPMod_array(term_t attrs_t, LDAPMod*** array) {
+    int size;
+    if (!get_list_size(attrs_t, &size)) {
+        PL_fail;
+    }
+
+    if (size == 0) {
+        PL_succeed;
+    }
+
+    LDAPMod** _array = malloc((size + 1) * sizeof (LDAPMod*));
+    memset(_array, 0, (size + 1) * sizeof (LDAPMod*));
+
+    term_t tail = PL_copy_term_ref(attrs_t);
+    term_t head = PL_new_term_ref();
+    int i = 0;
+    while (PL_get_list(tail, head, tail)) {
+        if (!build_LDAPMod(head, &_array[i++])) {
+            free_LDAPMod_array(_array);
+            PL_fail;
+        }
+    }
+    if (!PL_get_nil(tail)) {
+        return PL_type_error("list", tail);
+    }
+    _array[i] = NULL;
+
+    *array = _array;
+    PL_succeed;
+}
+
 int ldap4pl_unbind_ext0(term_t ldap_t, term_t sctrls_t, term_t cctrls_t, term_t msgid_t, int synchronous) {
     if (!synchronous && !PL_is_variable(msgid_t)) {
         return PL_uninstantiation_error(msgid_t);
@@ -1245,6 +1505,66 @@ int ldap4pl_compare0(term_t ldap_t, term_t dn_t,
     } else {
         return map_error_code(result, res_t);
     }
+}
+
+int ldap4pl_update_ext0(term_t ldap_t, term_t dn_t, term_t attrs_t,
+                        term_t sctrls_t, term_t cctrls_t, term_t msgid_t,
+                        int synchronous, int operation) {
+    if (!synchronous && !PL_is_variable(msgid_t)) {
+        return PL_uninstantiation_error(msgid_t);
+    }
+
+    LDAP* ldap;
+    if (!PL_get_pointer(ldap_t, (void**) &ldap)) {
+        return PL_type_error("pointer", ldap_t);
+    }
+
+    char* dn;
+    if (!PL_get_atom_chars(dn_t, &dn)) {
+        return PL_type_error("atom", dn_t);
+    }
+
+    LDAPMod** attrs = NULL;
+    if (operation != LDAP_MOD_DELETE) {
+        if (!build_LDAPMod_array(attrs_t, &attrs)) {
+            PL_fail;
+        }
+    }
+
+    LDAPControl** sctrls = NULL;
+    if (!build_LDAPControl_array(sctrls_t, &sctrls)) {
+        free_LDAPMod_array(attrs);
+        PL_fail;
+    }
+
+    LDAPControl** cctrls = NULL;
+    if (!build_LDAPControl_array(cctrls_t, &cctrls)) {
+        free_LDAPControl_array(sctrls);
+        free_LDAPMod_array(attrs);
+        PL_fail;
+    }
+
+    int msgid;
+    int result;
+    if (operation == LDAP_MOD_ADD) {
+        result = !synchronous ?
+            !ldap_add_ext(ldap, dn, attrs, sctrls, cctrls, &msgid) :
+            !ldap_add_ext_s(ldap, dn, attrs, sctrls, cctrls);
+    } else if (operation == LDAP_MOD_REPLACE) {
+        result = !synchronous ?
+            !ldap_modify_ext(ldap, dn, attrs, sctrls, cctrls, &msgid) :
+            !ldap_modify_ext_s(ldap, dn, attrs, sctrls, cctrls);
+    } else {
+        result = !synchronous ?
+            !ldap_delete_ext(ldap, dn, sctrls, cctrls, &msgid) :
+            !ldap_delete_ext_s(ldap, dn, sctrls, cctrls);
+    }
+
+    free_LDAPControl_array(sctrls);
+    free_LDAPControl_array(cctrls);
+    free_LDAPMod_array(attrs);
+
+    return result && (!synchronous ? PL_unify_integer(msgid_t, msgid) : result);
 }
 
 static foreign_t ldap4pl_initialize(term_t ldap_t, term_t uri_t) {
@@ -1844,12 +2164,12 @@ static foreign_t ldap4pl_abandon_ext(term_t ldap_t, term_t msgid_t, term_t sctrl
     }
 
     LDAPControl** sctrls = NULL;
-    if (sctrls_t && !build_LDAPControl_array(sctrls_t, &sctrls)) {
+    if (!build_LDAPControl_array(sctrls_t, &sctrls)) {
         PL_fail;
     }
 
     LDAPControl** cctrls = NULL;
-    if (cctrls_t && !build_LDAPControl_array(cctrls_t, &cctrls)) {
+    if (!build_LDAPControl_array(cctrls_t, &cctrls)) {
         free_LDAPControl_array(sctrls);
         PL_fail;
     }
@@ -1862,8 +2182,34 @@ static foreign_t ldap4pl_abandon_ext(term_t ldap_t, term_t msgid_t, term_t sctrl
     return result;
 }
 
-static foreign_t ldap4pl_abandon(term_t ldap_t, term_t msgid_t) {
-    return ldap4pl_abandon_ext(ldap_t, msgid_t, (term_t) NULL, (term_t) NULL);
+static foreign_t ldap4pl_add_ext(term_t ldap_t, term_t dn_t, term_t attrs_t,
+                                 term_t sctrls_t, term_t cctrls_t, term_t msgid_t) {
+    return ldap4pl_update_ext0(ldap_t, dn_t, attrs_t, sctrls_t, cctrls_t, msgid_t, FALSE, LDAP_MOD_ADD);
+}
+
+static foreign_t ldap4pl_add_ext_s(term_t ldap_t, term_t dn_t, term_t attrs_t,
+                                   term_t sctrls_t, term_t cctrls_t) {
+    return ldap4pl_update_ext0(ldap_t, dn_t, attrs_t, sctrls_t, cctrls_t, (term_t) NULL, TRUE, LDAP_MOD_ADD);
+}
+
+static foreign_t ldap4pl_modify_ext(term_t ldap_t, term_t dn_t, term_t attrs_t,
+                                 term_t sctrls_t, term_t cctrls_t, term_t msgid_t) {
+    return ldap4pl_update_ext0(ldap_t, dn_t, attrs_t, sctrls_t, cctrls_t, msgid_t, FALSE, LDAP_MOD_REPLACE);
+}
+
+static foreign_t ldap4pl_modify_ext_s(term_t ldap_t, term_t dn_t, term_t attrs_t,
+                                   term_t sctrls_t, term_t cctrls_t) {
+    return ldap4pl_update_ext0(ldap_t, dn_t, attrs_t, sctrls_t, cctrls_t, (term_t) NULL, TRUE, LDAP_MOD_REPLACE);
+}
+
+static foreign_t ldap4pl_delete_ext(term_t ldap_t, term_t dn_t,
+                                 term_t sctrls_t, term_t cctrls_t, term_t msgid_t) {
+    return ldap4pl_update_ext0(ldap_t, dn_t, (term_t) NULL, sctrls_t, cctrls_t, msgid_t, FALSE, LDAP_MOD_DELETE);
+}
+
+static foreign_t ldap4pl_delete_ext_s(term_t ldap_t, term_t dn_t,
+                                   term_t sctrls_t, term_t cctrls_t) {
+    return ldap4pl_update_ext0(ldap_t, dn_t, (term_t) NULL, sctrls_t, cctrls_t, (term_t) NULL, TRUE, LDAP_MOD_DELETE);
 }
 
 static void init_constants() {
@@ -1948,6 +2294,17 @@ static void init_constants() {
     ATOM_ldap_no_object_class_mods = PL_new_atom("ldap_no_object_class_mods");
     ATOM_ldap_other = PL_new_atom("ldap_other");
 
+    ATOM_ldapmod = PL_new_atom("ldapmod");
+    ATOM_mod_op = PL_new_atom("mod_op");
+    ATOM_mod_type = PL_new_atom("mod_type");
+    ATOM_mod_bvalues = PL_new_atom("mod_bvalues");
+    ATOM_mod_values = PL_new_atom("mod_values");
+    ATOM_ldap_mod_op = PL_new_atom("ldap_mod_op");
+    ATOM_ldap_mod_add = PL_new_atom("ldap_mod_add");
+    ATOM_ldap_mod_delete = PL_new_atom("ldap_mod_delete");
+    ATOM_ldap_mod_replace = PL_new_atom("ldap_mod_replace");
+    ATOM_ldap_mod_bvalues = PL_new_atom("ldap_mod_bvalues");
+
     FUNCTOR_bv_len = PL_new_functor(ATOM_bv_len, 1);
     FUNCTOR_bv_val = PL_new_functor(ATOM_bv_val, 1);
 
@@ -1997,5 +2354,10 @@ install_t install_ldap4pl() {
     PL_register_foreign("ldap4pl_compare", 5, ldap4pl_compare, 0);
     PL_register_foreign("ldap4pl_compare_s", 5, ldap4pl_compare_s, 0);
     PL_register_foreign("ldap4pl_abandon_ext", 4, ldap4pl_abandon_ext, 0);
-    PL_register_foreign("ldap4pl_abandon", 2, ldap4pl_abandon, 0);
+    PL_register_foreign("ldap4pl_add_ext", 6, ldap4pl_add_ext, 0);
+    PL_register_foreign("ldap4pl_add_ext_s", 5, ldap4pl_add_ext_s, 0);
+    PL_register_foreign("ldap4pl_modify_ext", 6, ldap4pl_modify_ext, 0);
+    PL_register_foreign("ldap4pl_modify_ext_s", 5, ldap4pl_modify_ext_s, 0);
+    PL_register_foreign("ldap4pl_delete_ext", 5, ldap4pl_delete_ext, 0);
+    PL_register_foreign("ldap4pl_delete_ext_s", 4, ldap4pl_delete_ext_s, 0);
 }
