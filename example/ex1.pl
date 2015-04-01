@@ -70,7 +70,6 @@ iterate_attributes0(LDAP, Entry, Ber) :-
     ;   ldap_ber_free(Ber, false)
     ).
 
-
 compare :-
     ldap_initialize(LDAP, 'ldap://172.16.0.223:389'),
     debug(ex1, 'LDAP ~w', [LDAP]),
