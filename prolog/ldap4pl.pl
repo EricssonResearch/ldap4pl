@@ -38,7 +38,9 @@
     ldap_compare_ext/7,
     ldap_compare_ext_s/7,
     ldap_compare/5,
-    ldap_compare_s/5
+    ldap_compare_s/5,
+    ldap_abandon_ext/4,
+    ldap_abandon/2
 ]).
 
 :- use_foreign_library(foreign(ldap4pl)).
@@ -164,3 +166,9 @@ ldap_compare(LDAP, DN, Attribute, Value, MsgID) :-
 
 ldap_compare_s(LDAP, DN, Attribute, Value, Result) :-
     ldap4pl_compare_s(LDAP, DN, Attribute, Value, Result).
+
+ldap_abandon_ext(LDAP, MsgID, SCtrls, CCtrls) :-
+    ldap4pl_abandon_ext(LDAP, MsgID, SCtrls, CCtrls).
+
+ldap_abandon(LDAP, MsgID) :-
+    ldap4pl_abandon(LDAP, MsgID).

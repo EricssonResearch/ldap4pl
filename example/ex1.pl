@@ -78,8 +78,9 @@ compare :-
     DN = 'cn=admin,dc=cf,dc=ericsson,dc=net',
     ldap_simple_bind_s(LDAP, DN, s3cret),
     ldap_compare_ext(LDAP, DN, description, berval(bv_len(18), bv_val('LDAP administrator')), [], [], MsgID),
+    ldap_abandon_ext(LDAP, MsgID, [], []),
     debug(ex1, 'MsgID ~w', [MsgID]),
-    ldap_result(LDAP, MsgID, true, Result),
+    ldap_result(LDAP, MsgID, true, timeval(tv_sec(2), tv_usec(0)), Result),
     ldap_parse_result(LDAP, Result, ErrorCode, _, _, _, _, true),
     debug(ex1, 'Result ~w', [ErrorCode]),
     ldap_unbind(LDAP).

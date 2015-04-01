@@ -1829,6 +1829,40 @@ static foreign_t ldap4pl_compare_s(term_t ldap_t, term_t dn_t, term_t attribute_
     return ldap4pl_compare0(ldap_t, dn_t, attribute_t, value_t, (term_t) NULL, res_t, TRUE);
 }
 
+static foreign_t ldap4pl_abandon_ext(term_t ldap_t, term_t msgid_t, term_t sctrls_t, term_t cctrls_t) {
+    LDAP* ldap;
+    if (!PL_get_pointer(ldap_t, (void**) &ldap)) {
+        return PL_type_error("pointer", ldap_t);
+    }
+
+    int msgid;
+    if (!PL_get_integer(msgid_t, &msgid)) {
+        return PL_type_error("number", msgid_t);
+    }
+
+    LDAPControl** sctrls = NULL;
+    if (sctrls_t && !build_LDAPControl_array(sctrls_t, &sctrls)) {
+        PL_fail;
+    }
+
+    LDAPControl** cctrls = NULL;
+    if (cctrls_t && !build_LDAPControl_array(cctrls_t, &cctrls)) {
+        free_LDAPControl_array(sctrls);
+        PL_fail;
+    }
+
+    int result = !ldap_abandon_ext(ldap, msgid, sctrls, cctrls);
+
+    free_LDAPControl_array(sctrls);
+    free_LDAPControl_array(cctrls);
+
+    return result;
+}
+
+static foreign_t ldap4pl_abandon(term_t ldap_t, term_t msgid_t) {
+    return ldap4pl_abandon_ext(ldap_t, msgid_t, (term_t) NULL, (term_t) NULL);
+}
+
 static void init_constants() {
     ATOM_timeval = PL_new_atom("timeval");
     ATOM_tv_sec = PL_new_atom("tv_sec");
@@ -1959,4 +1993,6 @@ install_t install_ldap4pl() {
     PL_register_foreign("ldap4pl_compare_ext_s", 7, ldap4pl_compare_ext_s, 0);
     PL_register_foreign("ldap4pl_compare", 5, ldap4pl_compare, 0);
     PL_register_foreign("ldap4pl_compare_s", 5, ldap4pl_compare_s, 0);
+    PL_register_foreign("ldap4pl_abandon_ext", 4, ldap4pl_abandon_ext, 0);
+    PL_register_foreign("ldap4pl_abandon", 2, ldap4pl_abandon, 0);
 }
