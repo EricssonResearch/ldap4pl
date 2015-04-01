@@ -1,7 +1,6 @@
 #include <SWI-Prolog.h>
 #include <SWI-Stream.h>
 #include <ldap.h>
-#include <string.h>
 
 #ifdef O_DEBUG
 #define DEBUG(g) g
