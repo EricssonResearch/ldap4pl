@@ -614,7 +614,7 @@ int build_LDAPControl_t(LDAPControl* ctrl, term_t ctrl_t) {
     if (!PL_unify_term(ldctl_iscritical_t, PL_FUNCTOR, FUNCTOR_ldctl_iscritical, PL_BOOL, ctrl->ldctl_oid)) {
         PL_fail;
     }
-    
+
     return PL_unify_term(ctrl_t, PL_FUNCTOR, FUNCTOR_ldapcontrol, PL_TERM, ldctl_oid_t,
                          PL_TERM, ldctl_value_t, PL_TERM, ldctl_iscritical_t);
 }
@@ -629,7 +629,7 @@ int build_LDAPControl_t_array(LDAPControl** array, term_t ctrls_t) {
             PL_fail;
     }
 
-    return PL_unify_nil(l);    
+    return PL_unify_nil(l);
 }
 
 /*
@@ -725,7 +725,7 @@ int build_chars_array(term_t array_t, char*** array) {
         return PL_type_error("list", tail);
     }
     _array[i] = NULL;
-    
+
     *array = _array;
     PL_succeed;
 }
@@ -965,7 +965,7 @@ int ldap4pl_sasl_bind0(term_t ldap_t, term_t dn_t, term_t mechanism_t,
     if (!build_BerValue(cred_t, &cred)) {
         PL_fail;
     }
-    
+
     LDAPControl** sctrls = NULL;
     if (!build_LDAPControl_array(sctrls_t, &sctrls)) {
         PL_fail;
@@ -1627,7 +1627,7 @@ static foreign_t ldap4pl_next_attribute(term_t ldap_t, term_t entry_t, term_t at
     return result;
 }
 
-static foreign_t ldap4pl_ber_free(term_t ber_t, term_t freebuf_t) {   
+static foreign_t ldap4pl_ber_free(term_t ber_t, term_t freebuf_t) {
     BerElement* ber;
     if (!PL_get_pointer(ber_t, (void**) &ber)) {
         return PL_type_error("pointer", ber_t);
@@ -1728,7 +1728,7 @@ static foreign_t ldap4pl_parse_result(term_t ldap_t, term_t res_t, term_t errcod
     LDAP* ldap;
     if (!PL_get_pointer(ldap_t, (void**) &ldap)) {
         return PL_type_error("pointer", ldap_t);
-    }    
+    }
 
     LDAPMessage* result;
     if (!PL_get_pointer(res_t, (void**) &result)) {
