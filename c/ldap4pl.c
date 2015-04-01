@@ -548,7 +548,7 @@ int build_LDAPControl(term_t ctrl_t, LDAPControl** ctrl) {
     PL_succeed;
 
 error:
-    free(ctrl);
+    free(_ctrl);
     PL_fail;
 }
 
@@ -759,6 +759,8 @@ int build_query_conditions(term_t query_t, char** base, int* scope, char** filte
         goto error;
     }
 
+    char** _attrs = NULL;
+
     for (int i = 1; i <= arity; ++i) {
         term_t arg_t = PL_new_term_ref();
         if (!PL_get_arg(i, query_t, arg_t)) {
@@ -815,7 +817,7 @@ int build_query_conditions(term_t query_t, char** base, int* scope, char** filte
                 goto error;
             }
             if (!PL_is_variable(attrs_t)) {
-                if (!build_chars_array(attrs_t, attrs)) {
+                if (!build_chars_array(attrs_t, &_attrs)) {
                     goto error;
                 }
             }
@@ -832,10 +834,11 @@ int build_query_conditions(term_t query_t, char** base, int* scope, char** filte
         }
     }
 
+    *attrs = _attrs;
     PL_succeed;
 
 error:
-    free(*attrs);
+    free(_attrs);
     PL_fail;
 }
 
