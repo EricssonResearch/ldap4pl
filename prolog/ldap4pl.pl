@@ -59,7 +59,9 @@
     ldap_modrdn2_s/4,
     ldap_rename/8,
     ldap_rename_s/7,
-    ldap_get_ld_errno/1
+    ldap_get_ld_errno/1,
+    ldap_extended_operation/6,
+    ldap_extended_operation_s/7
 ]).
 
 :- use_foreign_library(foreign(ldap4pl)).
@@ -254,3 +256,9 @@ ldap_rename2_s(LDAP, DN, NewRDN, NewSuperior, DeleteOldRDN) :-
 
 ldap_get_ld_errno(ErrorCode) :-
     ldap4pl_get_ld_errno(ErrorCode).
+
+ldap_extended_operation(LDAP, RequestOID, RequestData, SCtrls, CCtrls, MsgID) :-
+    ldap4pl_extended_operation(LDAP, RequestOID, RequestData, SCtrls, CCtrls, MsgID).
+
+ldap_extended_operation_s(LDAP, RequestOID, RequestData, SCtrls, CCtrls, RetOID, RetData) :-
+    ldap4pl_extended_operation_s(LDAP, RequestOID, RequestData, SCtrls, CCtrls, RetOID, RetData).

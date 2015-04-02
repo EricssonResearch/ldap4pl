@@ -1633,8 +1633,77 @@ int ldap4pl_rename0(term_t ldap_t, term_t dn_t, term_t newrdn_t,
 
     free_LDAPControl_array(sctrls);
     free_LDAPControl_array(cctrls);
-    
+
     return !synchronous ? (result != -1 && PL_unify_integer(msgid_t, msgid)) : result;
+}
+
+int ldap4pl_extended_operation0(term_t ldap_t, term_t requestoid_t, term_t requestdata_t,
+                                term_t sctrls_t, term_t cctrls_t, term_t msgid_t,
+                                term_t retoid_t, term_t retdata_t, int synchronous) {
+    if (!synchronous && !PL_is_variable(msgid_t)) {
+        return PL_uninstantiation_error(msgid_t);
+    }
+
+    if (synchronous && !PL_is_variable(retoid_t)) {
+        return PL_uninstantiation_error(retoid_t);
+    }
+
+    if (synchronous && !PL_is_variable(retdata_t)) {
+        return PL_uninstantiation_error(retdata_t);
+    }
+
+    LDAP* ldap;
+    if (!PL_get_pointer(ldap_t, (void**) &ldap)) {
+        return PL_type_error("pointer", ldap_t);
+    }
+
+    char* requestoid;
+    if (!PL_get_atom_chars(requestoid_t, &requestoid)) {
+        return PL_type_error("atom", requestoid_t);
+    }
+
+    BerValue* requestdata;
+    if (!build_BerValue(requestdata_t, &requestdata)) {
+        PL_fail;
+    }
+
+    LDAPControl** sctrls = NULL;
+    if (!build_LDAPControl_array(sctrls_t, &sctrls)) {
+        free(requestdata);
+        PL_fail;
+    }
+
+    LDAPControl** cctrls = NULL;
+    if (!build_LDAPControl_array(cctrls_t, &cctrls)) {
+        free_LDAPControl_array(sctrls);
+        free(requestdata);
+        PL_fail;
+    }
+
+    int msgid;
+    char* retoid;
+    BerValue* retdata;
+    int result;
+    result = !synchronous ?
+        ldap_extended_operation(ldap, requestoid, requestdata, sctrls, cctrls, &msgid) :
+        !(ld_errno = ldap_extended_operation_s(ldap, requestoid, requestdata,
+                                               sctrls, cctrls, &retoid, &retdata));
+
+    free_LDAPControl_array(sctrls);
+    free_LDAPControl_array(cctrls);
+    free(requestdata);
+
+    if (!synchronous) {
+        return result != 1 && PL_unify_integer(msgid_t, msgid);
+    } else {
+        int final_result = result && PL_unify_atom_chars(retoid_t, retoid) &&
+            build_BerValue_t(retdata, retdata_t);
+        if (result) {
+            ldap_memfree(retoid);
+            ber_bvfree(retdata);
+        }
+        return final_result;
+    }
 }
 
 static foreign_t ldap4pl_initialize(term_t ldap_t, term_t uri_t) {
@@ -2319,6 +2388,19 @@ static foreign_t ldap4pl_get_ld_errno(term_t ld_errno_t) {
     return map_error_code(ld_errno, ld_errno_t);
 }
 
+static foreign_t ldap4pl_extended_operation(term_t ldap_t, term_t requestoid_t, term_t requestdata_t,
+                                            term_t sctrls_t, term_t cctrls_t, term_t msgid_t) {
+    return ldap4pl_extended_operation0(ldap_t, requestoid_t, requestdata_t, sctrls_t, cctrls_t, msgid_t,
+                                       (term_t) NULL, (term_t) NULL, FALSE);
+}
+
+static foreign_t ldap4pl_extended_operation_s(term_t ldap_t, term_t requestoid_t, term_t requestdata_t,
+                                              term_t sctrls_t, term_t cctrls_t, term_t retoid_t,
+                                              term_t retdata_t) {
+    return ldap4pl_extended_operation0(ldap_t, requestoid_t, requestdata_t, sctrls_t, cctrls_t, (term_t) NULL,
+                                       retoid_t, retdata_t, TRUE);
+}
+
 static void init_constants() {
     ATOM_timeval = PL_new_atom("timeval");
     ATOM_tv_sec = PL_new_atom("tv_sec");
@@ -2474,4 +2556,6 @@ install_t install_ldap4pl() {
     PL_register_foreign("ldap4pl_rename", 8, ldap4pl_rename, 0);
     PL_register_foreign("ldap4pl_rename_s", 7, ldap4pl_rename_s, 0);
     PL_register_foreign("ldap4pl_get_ld_errno", 1, ldap4pl_get_ld_errno, 0);
+    PL_register_foreign("ldap4pl_extended_operation", 6, ldap4pl_extended_operation, 0);
+    PL_register_foreign("ldap4pl_extended_operation_s", 7, ldap4pl_extended_operation_s, 0);
 }
