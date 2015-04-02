@@ -23,15 +23,6 @@ static atom_t ATOM_ldctl_iscritical;
 
 static atom_t ATOM_berval;
 
-static functor_t FUNCTOR_berval;
-static functor_t FUNCTOR_bv_len;
-static functor_t FUNCTOR_bv_val;
-
-static functor_t FUNCTOR_ldapcontrol;
-static functor_t FUNCTOR_ldctl_oid;
-static functor_t FUNCTOR_ldctl_value;
-static functor_t FUNCTOR_ldctl_iscritical;
-
 static atom_t ATOM_ldap_auth_none;
 static atom_t ATOM_ldap_auth_simple;
 static atom_t ATOM_ldap_auth_sasl;
@@ -110,6 +101,37 @@ static atom_t ATOM_ldap_mod_add;
 static atom_t ATOM_ldap_mod_delete;
 static atom_t ATOM_ldap_mod_replace;
 static atom_t ATOM_ldap_mod_bvalues;
+
+static atom_t ATOM_lud;
+static atom_t ATOM_lud_scheme;
+static atom_t ATOM_lud_host;
+static atom_t ATOM_lud_port;
+static atom_t ATOM_lud_dn;
+static atom_t ATOM_lud_attrs;
+static atom_t ATOM_lud_scope;
+static atom_t ATOM_lud_filter;
+static atom_t ATOM_lud_exts;
+static atom_t ATOM_lud_crit_exts;
+
+static functor_t FUNCTOR_berval;
+static functor_t FUNCTOR_bv_len;
+static functor_t FUNCTOR_bv_val;
+
+static functor_t FUNCTOR_ldapcontrol;
+static functor_t FUNCTOR_ldctl_oid;
+static functor_t FUNCTOR_ldctl_value;
+static functor_t FUNCTOR_ldctl_iscritical;
+
+static functor_t FUNCTOR_lud;
+static functor_t FUNCTOR_lud_scheme;
+static functor_t FUNCTOR_lud_host;
+static functor_t FUNCTOR_lud_port;
+static functor_t FUNCTOR_lud_dn;
+static functor_t FUNCTOR_lud_attrs;
+static functor_t FUNCTOR_lud_scope;
+static functor_t FUNCTOR_lud_filter;
+static functor_t FUNCTOR_lud_exts;
+static functor_t FUNCTOR_lud_crit_exts;
 
 static __thread int ld_errno;
 
@@ -1101,6 +1123,87 @@ int build_LDAPMod_array(term_t attrs_t, LDAPMod*** array) {
 
     *array = _array;
     PL_succeed;
+}
+
+int build_lud_t(LDAPURLDesc* lud, term_t lud_t) {
+    term_t lud_scheme_t = PL_new_term_ref();
+    if (!PL_unify_term(lud_scheme_t, PL_FUNCTOR, FUNCTOR_lud_scheme, PL_CHARS, lud->lud_scheme)) {
+        PL_fail;
+    }
+
+    term_t lud_host_t = PL_new_term_ref();
+    char* host = lud->lud_host ? lud->lud_host : "";
+    if (!PL_unify_term(lud_host_t, PL_FUNCTOR, FUNCTOR_lud_host, PL_CHARS, host)) {
+        PL_fail;
+    }
+
+    term_t lud_port_t = PL_new_term_ref();
+    if (!PL_unify_term(lud_port_t, PL_FUNCTOR, FUNCTOR_lud_port, PL_INT, lud->lud_port)) {
+        PL_fail;
+    }
+
+    term_t lud_dn_t = PL_new_term_ref();
+    char* dn = lud->lud_dn ? lud->lud_dn : "";
+    if (!PL_unify_term(lud_dn_t, PL_FUNCTOR, FUNCTOR_lud_dn, PL_CHARS, dn)) {
+        PL_fail;
+    }
+
+    term_t attrs_t = PL_new_term_ref();
+    if (lud->lud_attrs) {
+        if (!build_chars_t_array(lud->lud_attrs, attrs_t)) {
+            PL_fail;
+        }
+    } else {
+        if (!PL_unify_nil(attrs_t)) {
+            PL_fail;
+        }
+    }
+    term_t lud_attrs_t = PL_new_term_ref();
+    if (!PL_unify_term(lud_attrs_t, PL_FUNCTOR, FUNCTOR_lud_attrs, PL_TERM, attrs_t)) {
+        PL_fail;
+    }
+
+    term_t lud_scope_t = PL_new_term_ref();
+    if (!PL_unify_term(lud_scope_t, PL_FUNCTOR, FUNCTOR_lud_scope, PL_INT, lud->lud_scope)) {
+        PL_fail;
+    }
+
+    term_t lud_filter_t = PL_new_term_ref();
+    char* filter = lud->lud_filter ? lud->lud_filter : "";
+    if (!PL_unify_term(lud_filter_t, PL_FUNCTOR, FUNCTOR_lud_filter, PL_CHARS, filter)) {
+        PL_fail;
+    }
+
+    term_t exts_t = PL_new_term_ref();
+    if (lud->lud_exts) {
+        if (!build_chars_t_array(lud->lud_exts, exts_t)) {
+            PL_fail;
+        }
+    } else {
+        if (!PL_unify_nil(exts_t)) {
+            PL_fail;
+        }
+    }
+    term_t lud_exts_t = PL_new_term_ref();
+    if (!PL_unify_term(lud_exts_t, PL_FUNCTOR, FUNCTOR_lud_exts, PL_TERM, exts_t)) {
+        PL_fail;
+    }
+
+    term_t lud_crit_exts_t = PL_new_term_ref();
+    if (!PL_unify_term(lud_crit_exts_t, PL_FUNCTOR, FUNCTOR_lud_crit_exts, PL_INT, lud->lud_crit_exts)) {
+        PL_fail;
+    }
+
+    return PL_unify_term(lud_t, PL_FUNCTOR, FUNCTOR_lud,
+                         PL_TERM, lud_scheme_t,
+                         PL_TERM, lud_host_t,
+                         PL_TERM, lud_port_t,
+                         PL_TERM, lud_dn_t,
+                         PL_TERM, lud_attrs_t,
+                         PL_TERM, lud_scope_t,
+                         PL_TERM, lud_filter_t,
+                         PL_TERM, lud_exts_t,
+                         PL_TERM, lud_crit_exts_t);
 }
 
 int ldap4pl_bind0(term_t ldap_t, term_t who_t, term_t cred_t, term_t method_t, term_t msgid_t, int synchronous) {
@@ -2410,6 +2513,25 @@ static foreign_t ldap4pl_is_ldap_url(term_t url_t) {
     return ldap_is_ldap_url(url);
 }
 
+static foreign_t ldap4pl_url_parse(term_t url_t, term_t lud_t) {
+    if (!PL_is_variable(lud_t)) {
+        return PL_uninstantiation_error(lud_t);
+    }
+
+    char* url;
+    if (!PL_get_atom_chars(url_t, &url)) {
+        return PL_type_error("atom", url_t);
+    }
+
+    LDAPURLDesc* lud;
+    int result = !(ld_errno = ldap_url_parse(url, &lud));
+    int final_result = result && build_lud_t(lud, lud_t);
+    if (result) {
+        ldap_free_urldesc(lud);
+    }
+    return final_result;
+}
+
 static void init_constants() {
     ATOM_timeval = PL_new_atom("timeval");
     ATOM_tv_sec = PL_new_atom("tv_sec");
@@ -2503,6 +2625,17 @@ static void init_constants() {
     ATOM_ldap_mod_replace = PL_new_atom("ldap_mod_replace");
     ATOM_ldap_mod_bvalues = PL_new_atom("ldap_mod_bvalues");
 
+    ATOM_lud = PL_new_atom("lud");
+    ATOM_lud_scheme = PL_new_atom("lud_scheme");
+    ATOM_lud_host = PL_new_atom("lud_host");
+    ATOM_lud_port = PL_new_atom("lud_port");
+    ATOM_lud_dn = PL_new_atom("lud_dn");
+    ATOM_lud_attrs = PL_new_atom("lud_attrs");
+    ATOM_lud_scope = PL_new_atom("lud_scope");
+    ATOM_lud_filter = PL_new_atom("lud_filter");
+    ATOM_lud_exts = PL_new_atom("lud_exts");
+    ATOM_lud_crit_exts = PL_new_atom("lud_crit_exts");
+
     FUNCTOR_bv_len = PL_new_functor(ATOM_bv_len, 1);
     FUNCTOR_bv_val = PL_new_functor(ATOM_bv_val, 1);
 
@@ -2512,6 +2645,17 @@ static void init_constants() {
     FUNCTOR_ldctl_oid = PL_new_functor(ATOM_ldctl_oid, 1);
     FUNCTOR_ldctl_value = PL_new_functor(ATOM_ldctl_value, 2);
     FUNCTOR_ldctl_iscritical = PL_new_functor(ATOM_ldctl_iscritical, 1);
+
+    FUNCTOR_lud = PL_new_functor(ATOM_lud, 9);
+    FUNCTOR_lud_scheme = PL_new_functor(ATOM_lud_scheme, 1);
+    FUNCTOR_lud_host = PL_new_functor(ATOM_lud_host, 1);
+    FUNCTOR_lud_port = PL_new_functor(ATOM_lud_port, 1);
+    FUNCTOR_lud_dn = PL_new_functor(ATOM_lud_dn, 1);
+    FUNCTOR_lud_attrs = PL_new_functor(ATOM_lud_attrs, 1);
+    FUNCTOR_lud_scope = PL_new_functor(ATOM_lud_scope, 1);
+    FUNCTOR_lud_filter = PL_new_functor(ATOM_lud_filter, 1);
+    FUNCTOR_lud_exts = PL_new_functor(ATOM_lud_exts, 1);
+    FUNCTOR_lud_crit_exts = PL_new_functor(ATOM_lud_crit_exts, 1);
 }
 
 install_t install_ldap4pl() {
@@ -2568,4 +2712,5 @@ install_t install_ldap4pl() {
     PL_register_foreign("ldap4pl_extended_operation", 6, ldap4pl_extended_operation, 0);
     PL_register_foreign("ldap4pl_extended_operation_s", 7, ldap4pl_extended_operation_s, 0);
     PL_register_foreign("ldap4pl_is_ldap_url", 1, ldap4pl_is_ldap_url, 0);
+    PL_register_foreign("ldap4pl_url_parse", 2, ldap4pl_url_parse, 0);
 }
