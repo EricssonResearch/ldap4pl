@@ -111,6 +111,8 @@ static atom_t ATOM_ldap_mod_delete;
 static atom_t ATOM_ldap_mod_replace;
 static atom_t ATOM_ldap_mod_bvalues;
 
+static __thread int ld_errno;
+
 int get_list_size(term_t list, int* size) {
     int _size = 0;
     *size = _size;
@@ -1101,39 +1103,6 @@ int build_LDAPMod_array(term_t attrs_t, LDAPMod*** array) {
     PL_succeed;
 }
 
-int ldap4pl_unbind_ext0(term_t ldap_t, term_t sctrls_t, term_t cctrls_t, term_t msgid_t, int synchronous) {
-    if (!synchronous && !PL_is_variable(msgid_t)) {
-        return PL_uninstantiation_error(msgid_t);
-    }
-
-    LDAP* ldap;
-    if (!PL_get_pointer(ldap_t, (void**) &ldap)) {
-        return PL_type_error("pointer", ldap_t);
-    }
-
-    LDAPControl** sctrls = NULL;
-    if (!build_LDAPControl_array(sctrls_t, &sctrls)) {
-        PL_fail;
-    }
-
-    LDAPControl** cctrls = NULL;
-    if (!build_LDAPControl_array(cctrls_t, &cctrls)) {
-        free_LDAPControl_array(sctrls);
-        PL_fail;
-    }
-
-    int result = !synchronous ? ldap_unbind_ext(ldap, sctrls, cctrls) : !ldap_unbind_ext_s(ldap, sctrls, cctrls);
-
-    free_LDAPControl_array(sctrls);
-    free_LDAPControl_array(cctrls);
-
-    if (!synchronous) {
-        return result && PL_unify_integer(msgid_t, result);
-    } else {
-        return result;
-    }
-}
-
 int ldap4pl_bind0(term_t ldap_t, term_t who_t, term_t cred_t, term_t method_t, term_t msgid_t, int synchronous) {
     if (!synchronous && !PL_is_variable(msgid_t)) {
         return PL_uninstantiation_error(msgid_t);
@@ -1163,7 +1132,8 @@ int ldap4pl_bind0(term_t ldap_t, term_t who_t, term_t cred_t, term_t method_t, t
         return PL_type_error("atom", cred_t);
     }
 
-    int result = !synchronous ? ldap_bind(ldap, who, cred, method_int) : !ldap_bind_s(ldap, who, cred, method_int);
+    int result = !synchronous ? ldap_bind(ldap, who, cred, method_int) :
+        !(ld_errno = ldap_bind_s(ldap, who, cred, method_int));
     return !synchronous ? (result != -1 && PL_unify_integer(msgid_t, result)) : result;
 }
 
@@ -1186,7 +1156,8 @@ int ldap4pl_simple_bind0(term_t ldap_t, term_t who_t, term_t passwd_t, term_t ms
         return PL_type_error("atom", passwd_t);
     }
 
-    int result = !synchronous ? ldap_simple_bind(ldap, who, passwd) : !ldap_simple_bind_s(ldap, who, passwd);
+    int result = !synchronous ? ldap_simple_bind(ldap, who, passwd) :
+        !(ld_errno = ldap_simple_bind_s(ldap, who, passwd));
     return !synchronous ? (result != -1 && PL_unify_integer(msgid_t, result)) : result;
 }
 
@@ -1235,15 +1206,15 @@ int ldap4pl_sasl_bind0(term_t ldap_t, term_t dn_t, term_t mechanism_t,
     int msgid;
     BerValue* servercred;
     int result = !synchronous ?
-        !ldap_sasl_bind(ldap, dn, mechanism, cred, sctrls, cctrls, &msgid) :
-        !ldap_sasl_bind_s(ldap, dn, mechanism, cred, sctrls, cctrls, &servercred);
+        ldap_sasl_bind(ldap, dn, mechanism, cred, sctrls, cctrls, &msgid) :
+        !(ld_errno = ldap_sasl_bind_s(ldap, dn, mechanism, cred, sctrls, cctrls, &servercred));
 
     free_LDAPControl_array(sctrls);
     free_LDAPControl_array(cctrls);
     free(cred);
 
     if (!synchronous) {
-        return result && PL_unify_integer(msgid_t, msgid);
+        return result != -1 && PL_unify_integer(msgid_t, msgid);
     } else {
         int final_result = result && build_BerValue_t(servercred, servercred_t);
         if (result) {
@@ -1323,15 +1294,15 @@ int ldap4pl_search_ext0(term_t ldap_t, term_t query_t, term_t sctrls_t,
     int msgid;
     LDAPMessage* res;
     int result = !synchronous ?
-        !ldap_search_ext(ldap, base, scope, filter, attrs, attrsonly, sctrls, cctrls, timeout, sizelimit, &msgid) :
-        !ldap_search_ext_s(ldap, base, scope, filter, attrs, attrsonly, sctrls, cctrls, timeout, sizelimit, &res);
+        ldap_search_ext(ldap, base, scope, filter, attrs, attrsonly, sctrls, cctrls, timeout, sizelimit, &msgid) :
+        !(ld_errno = ldap_search_ext_s(ldap, base, scope, filter, attrs, attrsonly, sctrls, cctrls, timeout, sizelimit, &res));
 
     free_LDAPControl_array(sctrls);
     free_LDAPControl_array(cctrls);
     free(timeout);
     free(attrs);
 
-    return result && (!synchronous ? PL_unify_integer(msgid_t, msgid) : PL_unify_pointer(res_t, res));
+    return !synchronous ? (result != -1 && PL_unify_integer(msgid_t, msgid)) : (result && PL_unify_pointer(res_t, res));
 }
 
 int ldap4pl_search0(term_t ldap_t, term_t query_t,
@@ -1382,8 +1353,8 @@ int ldap4pl_search0(term_t ldap_t, term_t query_t,
     int result = !synchronous ?
         ldap_search(ldap, base, scope, filter, attrs, attrsonly) :
         (timeout == NULL ?
-         !ldap_search_s(ldap, base, scope, filter, attrs, attrsonly, &res) :
-         !ldap_search_st(ldap, base, scope, filter, attrs, attrsonly, timeout, &res));
+         !(ld_errno = ldap_search_s(ldap, base, scope, filter, attrs, attrsonly, &res)) :
+         !(ld_errno = ldap_search_st(ldap, base, scope, filter, attrs, attrsonly, timeout, &res)));
 
     free(timeout);
     free(attrs);
@@ -1441,18 +1412,14 @@ int ldap4pl_compare_ext0(term_t ldap_t, term_t dn_t, term_t attribute_t, term_t 
 
     int msgid;
     int result = !synchronous ?
-        !ldap_compare_ext(ldap, dn, attribute, berval, sctrls, cctrls, &msgid) :
+        ldap_compare_ext(ldap, dn, attribute, berval, sctrls, cctrls, &msgid) :
         ldap_compare_ext_s(ldap, dn, attribute, berval, sctrls, cctrls);
 
     free_LDAPControl_array(sctrls);
     free_LDAPControl_array(cctrls);
     free(berval);
 
-    if (!synchronous) {
-        return result && PL_unify_integer(msgid_t, msgid);
-    } else {
-        return map_error_code(result, res_t);
-    }
+    return !synchronous ? (result != -1 && PL_unify_integer(msgid_t, result)) : map_error_code(result, res_t);
 }
 
 int ldap4pl_compare0(term_t ldap_t, term_t dn_t,
@@ -1534,23 +1501,23 @@ int ldap4pl_update_ext0(term_t ldap_t, term_t dn_t, term_t attrs_t,
     int result;
     if (operation == LDAP_MOD_ADD) {
         result = !synchronous ?
-            !ldap_add_ext(ldap, dn, attrs, sctrls, cctrls, &msgid) :
-            !ldap_add_ext_s(ldap, dn, attrs, sctrls, cctrls);
+            ldap_add_ext(ldap, dn, attrs, sctrls, cctrls, &msgid) :
+            !(ld_errno = ldap_add_ext_s(ldap, dn, attrs, sctrls, cctrls));
     } else if (operation == LDAP_MOD_REPLACE) {
         result = !synchronous ?
-            !ldap_modify_ext(ldap, dn, attrs, sctrls, cctrls, &msgid) :
-            !ldap_modify_ext_s(ldap, dn, attrs, sctrls, cctrls);
+            ldap_modify_ext(ldap, dn, attrs, sctrls, cctrls, &msgid) :
+            !(ld_errno = ldap_modify_ext_s(ldap, dn, attrs, sctrls, cctrls));
     } else {
         result = !synchronous ?
-            !ldap_delete_ext(ldap, dn, sctrls, cctrls, &msgid) :
-            !ldap_delete_ext_s(ldap, dn, sctrls, cctrls);
+            ldap_delete_ext(ldap, dn, sctrls, cctrls, &msgid) :
+            !(ld_errno = ldap_delete_ext_s(ldap, dn, sctrls, cctrls));
     }
 
     free_LDAPControl_array(sctrls);
     free_LDAPControl_array(cctrls);
     free_LDAPMod_array(attrs);
 
-    return result && (!synchronous ? PL_unify_integer(msgid_t, msgid) : result);
+    return !synchronous ? (result != -1 && PL_unify_integer(msgid_t, msgid)) : result;
 }
 
 int ldap4pl_modrdn0(term_t ldap_t, term_t dn_t, term_t newrdn_t, term_t msgid_t, int synchronous) {
@@ -1576,7 +1543,7 @@ int ldap4pl_modrdn0(term_t ldap_t, term_t dn_t, term_t newrdn_t, term_t msgid_t,
     int result;
     result = !synchronous ?
         ldap_modrdn(ldap, dn, newrdn) :
-        !ldap_modrdn_s(ldap, dn, newrdn);
+        !(ld_errno = ldap_modrdn_s(ldap, dn, newrdn));
 
     return !synchronous ? (result != -1 && PL_unify_integer(msgid_t, result)) : result;
 }
@@ -1609,7 +1576,7 @@ int ldap4pl_modrdn20(term_t ldap_t, term_t dn_t, term_t newrdn_t, term_t deleteo
     int result;
     result = !synchronous ?
         ldap_modrdn2(ldap, dn, newrdn, deleteoldrdn) :
-        !ldap_modrdn2_s(ldap, dn, newrdn, deleteoldrdn);
+        !(ld_errno = ldap_modrdn2_s(ldap, dn, newrdn, deleteoldrdn));
 
     return !synchronous ? (result != -1 && PL_unify_integer(msgid_t, result)) : result;
 }
@@ -1661,13 +1628,13 @@ int ldap4pl_rename0(term_t ldap_t, term_t dn_t, term_t newrdn_t,
     int msgid;
     int result;
     result = !synchronous ?
-        !ldap_rename(ldap, dn, newrdn, newsuperior, deleteoldrdn, sctrls, cctrls, &msgid) :
-        !ldap_rename_s(ldap, dn, newrdn, newsuperior, deleteoldrdn, sctrls, cctrls);
+        ldap_rename(ldap, dn, newrdn, newsuperior, deleteoldrdn, sctrls, cctrls, &msgid) :
+        !(ld_errno = ldap_rename_s(ldap, dn, newrdn, newsuperior, deleteoldrdn, sctrls, cctrls));
 
     free_LDAPControl_array(sctrls);
     free_LDAPControl_array(cctrls);
     
-    return result && !synchronous ? PL_unify_integer(msgid_t, msgid) : result;
+    return !synchronous ? (result != -1 && PL_unify_integer(msgid_t, msgid)) : result;
 }
 
 static foreign_t ldap4pl_initialize(term_t ldap_t, term_t uri_t) {
@@ -1683,7 +1650,7 @@ static foreign_t ldap4pl_initialize(term_t ldap_t, term_t uri_t) {
     DEBUG(Sdprintf("connecting to %s\n", uri));
 
     LDAP* ldap;
-    if (ldap_initialize(&ldap, uri)) {
+    if ((ld_errno = ldap_initialize(&ldap, uri)) != 0) {
         PL_fail;
     }
 
@@ -1696,7 +1663,7 @@ static foreign_t ldap4pl_unbind(term_t ldap_t) {
         return PL_type_error("pointer", ldap_t);
     }
 
-    return !ldap_unbind(ldap);
+    return !(ld_errno = ldap_unbind_s(ldap));
 }
 
 static foreign_t ldap4pl_unbind_ext(term_t ldap_t, term_t sctrls_t, term_t cctrls_t) {
@@ -1716,12 +1683,12 @@ static foreign_t ldap4pl_unbind_ext(term_t ldap_t, term_t sctrls_t, term_t cctrl
         PL_fail;
     }
 
-    int result = ldap_unbind_ext(ldap, sctrls, cctrls);
+    int result = ldap_unbind_ext_s(ldap, sctrls, cctrls);
 
     free_LDAPControl_array(sctrls);
     free_LDAPControl_array(cctrls);
 
-    return result;
+    return !result;
 }
 
 static foreign_t ldap4pl_bind(term_t ldap_t, term_t who_t, term_t cred_t, term_t method_t, term_t msgid_t) {
@@ -1767,11 +1734,11 @@ static foreign_t ldap4pl_parse_sasl_bind_result(term_t ldap_t, term_t res_t, ter
     }
 
     BerValue* servercred;
-    if (!ldap_parse_sasl_bind_result(ldap, result, &servercred, freeit)) {
+    if ((ld_errno = ldap_parse_sasl_bind_result(ldap, result, &servercred, freeit)) != 0) {
         PL_fail;
     }
 
-    int tmp= build_BerValue_t(servercred, servercred_t);
+    int tmp = build_BerValue_t(servercred, servercred_t);
     ber_bvfree(servercred);
     return tmp;
 }
@@ -1795,22 +1762,21 @@ static foreign_t ldap4pl_set_option(term_t ldap_t, term_t option_t, term_t inval
     if (PL_is_atom(invalue_t)) {
         char* invalue;
         if (PL_get_atom_chars(invalue_t, &invalue)) {
-            return !ldap_set_option(ldap, option, &invalue);
+            return !(ld_errno = ldap_set_option(ldap, option, &invalue));
         }
     }
 
     if (PL_is_integer(invalue_t)) {
         int invalue;
         if (PL_get_integer(invalue_t, &invalue)) {
-            int r = ldap_set_option(ldap, option_int, &invalue);
-            return !r;
+            return !(ld_errno = ldap_set_option(ldap, option_int, &invalue));
         }
     }
 
     if (PL_is_float(invalue_t)) {
         double invalue;
         if (PL_get_float(invalue_t, &invalue)) {
-            return !ldap_set_option(ldap, option, &invalue);
+            return !(ld_errno = ldap_set_option(ldap, option, &invalue));
         }
     }
 
@@ -1869,7 +1835,7 @@ static foreign_t ldap4pl_msgfree(term_t msg_t) {
         return PL_type_error("pointer", msg_t);
     }
 
-    return ldap_msgfree(msg) == -1 ? FALSE : TRUE;
+    return ldap_msgfree(msg) != -1;
 }
 
 static foreign_t ldap4pl_msgtype(term_t msg_t, term_t type_t) {
@@ -2123,7 +2089,11 @@ static foreign_t ldap4pl_get_dn(term_t ldap_t, term_t entry_t, term_t dn_t) {
         return PL_type_error("pointer", entry_t);
     }
 
-    char* dn = ldap_get_dn(ldap, entry);
+    char* dn;
+    if (!(dn = ldap_get_dn(ldap, entry))) {
+        PL_fail;
+    }
+
     int result = PL_unify_atom_chars(dn_t, dn);
     ldap_memfree(dn);
     return result;
@@ -2171,8 +2141,9 @@ static foreign_t ldap4pl_parse_result(term_t ldap_t, term_t res_t, term_t errcod
     char* errmsg = NULL;
     char** referrals = NULL;
     LDAPControl** sctrls = NULL;
-    if (ldap_parse_result(ldap, result, &errcode, &matcheddn, &errmsg, &referrals,
-                          &sctrls, freeit)) {
+    if ((ld_errno = ldap_parse_result(ldap, result, &errcode,
+                                      &matcheddn, &errmsg, &referrals,
+                                      &sctrls, freeit)) != 0) {
         goto error;
     }
 
@@ -2277,12 +2248,12 @@ static foreign_t ldap4pl_abandon_ext(term_t ldap_t, term_t msgid_t, term_t sctrl
         PL_fail;
     }
 
-    int result = !ldap_abandon_ext(ldap, msgid, sctrls, cctrls);
+    ld_errno = ldap_abandon_ext(ldap, msgid, sctrls, cctrls);
 
     free_LDAPControl_array(sctrls);
     free_LDAPControl_array(cctrls);
 
-    return result;
+    return !ld_errno;
 }
 
 static foreign_t ldap4pl_add_ext(term_t ldap_t, term_t dn_t, term_t attrs_t,
@@ -2342,6 +2313,10 @@ static foreign_t ldap4pl_rename_s(term_t ldap_t, term_t dn_t, term_t newrdn_t,
                                   term_t newsuperior_t, term_t deleteoldrdn_t,
                                   term_t sctrls_t, term_t cctrls_t) {
     return ldap4pl_rename0(ldap_t, dn_t, newrdn_t, newsuperior_t, deleteoldrdn_t, sctrls_t, cctrls_t, (term_t) NULL, TRUE);
+}
+
+static foreign_t ldap4pl_get_ld_errno(term_t ld_errno_t) {
+    return map_error_code(ld_errno, ld_errno_t);
 }
 
 static void init_constants() {
@@ -2498,4 +2473,5 @@ install_t install_ldap4pl() {
     PL_register_foreign("ldap4pl_modrdn2_s", 4, ldap4pl_modrdn2_s, 0);
     PL_register_foreign("ldap4pl_rename", 8, ldap4pl_rename, 0);
     PL_register_foreign("ldap4pl_rename_s", 7, ldap4pl_rename_s, 0);
+    PL_register_foreign("ldap4pl_get_ld_errno", 1, ldap4pl_get_ld_errno, 0);
 }

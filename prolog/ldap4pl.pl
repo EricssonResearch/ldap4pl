@@ -58,7 +58,8 @@
     ldap_modrdn2/5,
     ldap_modrdn2_s/4,
     ldap_rename/8,
-    ldap_rename_s/7
+    ldap_rename_s/7,
+    ldap_get_ld_errno/1
 ]).
 
 :- use_foreign_library(foreign(ldap4pl)).
@@ -250,3 +251,6 @@ ldap_rename2(LDAP, DN, NewRDN, NewSuperior, DeleteOldRDN, MsgID) :-
 
 ldap_rename2_s(LDAP, DN, NewRDN, NewSuperior, DeleteOldRDN) :-
     ldap4pl_rename_s(LDAP, DN, NewRDN, NewSuperior, DeleteOldRDN, [], []).
+
+ldap_get_ld_errno(ErrorCode) :-
+    ldap4pl_get_ld_errno(ErrorCode).

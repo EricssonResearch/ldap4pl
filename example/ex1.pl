@@ -139,3 +139,15 @@ delete :-
     DN1 = 'cn=test,ou=groups,dc=cf,dc=ericsson,dc=net',
     ldap_delete_s(LDAP, DN1),
     ldap_unbind(LDAP).
+
+rename :-
+    ldap_initialize(LDAP, 'ldap://172.16.0.223:389'),
+    debug(ex1, 'LDAP ~w', [LDAP]),
+    ldap_set_option(LDAP, ldap_opt_protocol_version, 3),
+    DN = 'cn=admin,dc=cf,dc=ericsson,dc=net',
+    ldap_simple_bind_s(LDAP, DN, s3cret),
+    DN1 = 'cn=test,ou=groups,dc=cf,dc=ericsson,dc=net',
+    ignore(ldap_modrdn_s(LDAP, DN1, test_rdn)),
+    ldap_get_ld_errno(ErrorCode),
+    debug(ex1, 'ErrorCode ~w', [ErrorCode]),
+    ldap_unbind(LDAP).
