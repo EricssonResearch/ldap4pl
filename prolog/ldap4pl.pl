@@ -61,7 +61,8 @@
     ldap_rename_s/7,
     ldap_get_ld_errno/1,
     ldap_extended_operation/6,
-    ldap_extended_operation_s/7
+    ldap_extended_operation_s/7,
+    ldap_is_ldap_url/1
 ]).
 
 :- use_foreign_library(foreign(ldap4pl)).
@@ -262,3 +263,6 @@ ldap_extended_operation(LDAP, RequestOID, RequestData, SCtrls, CCtrls, MsgID) :-
 
 ldap_extended_operation_s(LDAP, RequestOID, RequestData, SCtrls, CCtrls, RetOID, RetData) :-
     ldap4pl_extended_operation_s(LDAP, RequestOID, RequestData, SCtrls, CCtrls, RetOID, RetData).
+
+ldap_is_ldap_url(URL) :-
+    ldap4pl_is_ldap_url(URL).

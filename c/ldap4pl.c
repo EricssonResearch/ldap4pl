@@ -2261,7 +2261,7 @@ error:
 static foreign_t ldap4pl_err2string(term_t errcode_t, term_t errstring_t) {
     atom_t errcode;
     if (!PL_get_atom(errcode_t, &errcode)) {
-        PL_type_error("atom", errcode_t);
+        return PL_type_error("atom", errcode_t);
     }
 
     int errcode_int;
@@ -2399,6 +2399,15 @@ static foreign_t ldap4pl_extended_operation_s(term_t ldap_t, term_t requestoid_t
                                               term_t retdata_t) {
     return ldap4pl_extended_operation0(ldap_t, requestoid_t, requestdata_t, sctrls_t, cctrls_t, (term_t) NULL,
                                        retoid_t, retdata_t, TRUE);
+}
+
+static foreign_t ldap4pl_is_ldap_url(term_t url_t) {
+    char* url;
+    if (!PL_get_atom_chars(url_t, &url)) {
+        return PL_type_error("atom", url_t);
+    }
+
+    return ldap_is_ldap_url(url);
 }
 
 static void init_constants() {
@@ -2558,4 +2567,5 @@ install_t install_ldap4pl() {
     PL_register_foreign("ldap4pl_get_ld_errno", 1, ldap4pl_get_ld_errno, 0);
     PL_register_foreign("ldap4pl_extended_operation", 6, ldap4pl_extended_operation, 0);
     PL_register_foreign("ldap4pl_extended_operation_s", 7, ldap4pl_extended_operation_s, 0);
+    PL_register_foreign("ldap4pl_is_ldap_url", 1, ldap4pl_is_ldap_url, 0);
 }
