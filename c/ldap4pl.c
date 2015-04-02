@@ -1164,11 +1164,7 @@ int ldap4pl_bind0(term_t ldap_t, term_t who_t, term_t cred_t, term_t method_t, t
     }
 
     int result = !synchronous ? ldap_bind(ldap, who, cred, method_int) : !ldap_bind_s(ldap, who, cred, method_int);
-    if (!synchronous) {
-        return result && PL_unify_integer(msgid_t, result);
-    } else {
-        return result;
-    }
+    return !synchronous ? (result != -1 && PL_unify_integer(msgid_t, result)) : result;
 }
 
 int ldap4pl_simple_bind0(term_t ldap_t, term_t who_t, term_t passwd_t, term_t msgid_t, int synchronous) {
@@ -1191,11 +1187,7 @@ int ldap4pl_simple_bind0(term_t ldap_t, term_t who_t, term_t passwd_t, term_t ms
     }
 
     int result = !synchronous ? ldap_simple_bind(ldap, who, passwd) : !ldap_simple_bind_s(ldap, who, passwd);
-    if (!synchronous) {
-        return result && PL_unify_integer(msgid_t, result);
-    } else {
-        return result;
-    }
+    return !synchronous ? (result != -1 && PL_unify_integer(msgid_t, result)) : result;
 }
 
 int ldap4pl_sasl_bind0(term_t ldap_t, term_t dn_t, term_t mechanism_t,
@@ -1397,7 +1389,7 @@ int ldap4pl_search0(term_t ldap_t, term_t query_t,
     free(attrs);
 
     if (!synchronous) {
-        return result && PL_unify_integer(msgid_t, result);
+        return result != -1 && PL_unify_integer(msgid_t, result);
     } else {
         return result && PL_unify_pointer(res_t, res);
     }
@@ -1494,16 +1486,11 @@ int ldap4pl_compare0(term_t ldap_t, term_t dn_t,
         return PL_type_error("atom", value_t);
     }
 
-    int msgid;
     int result = !synchronous ?
         ldap_compare(ldap, dn, attribute, value) :
         ldap_compare_s(ldap, dn, attribute, value);
 
-    if (!synchronous) {
-        return result && PL_unify_integer(msgid_t, result);
-    } else {
-        return map_error_code(result, res_t);
-    }
+    return !synchronous ? (result != -1 && PL_unify_integer(msgid_t, result)) : map_error_code(result, res_t);
 }
 
 int ldap4pl_update_ext0(term_t ldap_t, term_t dn_t, term_t attrs_t,
