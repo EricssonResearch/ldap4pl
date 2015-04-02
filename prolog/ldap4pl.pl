@@ -52,7 +52,9 @@
     ldap_delete_ext/5,
     ldap_delete_ext_s/4,
     ldap_delete/3,
-    ldap_delete_s/2
+    ldap_delete_s/2,
+    ldap_modrdn/4,
+    ldap_modrdn_s/3
 ]).
 
 :- use_foreign_library(foreign(ldap4pl)).
@@ -220,3 +222,9 @@ ldap_delete(LDAP, DN, MsgID) :-
 
 ldap_delete_s(LDAP, DN) :-
     ldap4pl_delete_ext_s(LDAP, DN, [], []).
+
+ldap_modrdn(LDAP, DN, NewRDN, MsgID) :-
+    ldap4pl_modrdn(LDAP, DN, NewRDN, MsgID).
+
+ldap_modrdn_s(LDAP, DN, NewRDN) :-
+    ldap4pl_modrdn_s(LDAP, DN, NewRDN).

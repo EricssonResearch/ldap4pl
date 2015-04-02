@@ -1566,6 +1566,34 @@ int ldap4pl_update_ext0(term_t ldap_t, term_t dn_t, term_t attrs_t,
     return result && (!synchronous ? PL_unify_integer(msgid_t, msgid) : result);
 }
 
+int ldap4pl_modrdn0(term_t ldap_t, term_t dn_t, term_t newrdn_t, term_t msgid_t, int synchronous) {
+    if (!synchronous && !PL_is_variable(msgid_t)) {
+        return PL_uninstantiation_error(msgid_t);
+    }
+
+    LDAP* ldap;
+    if (!PL_get_pointer(ldap_t, (void**) &ldap)) {
+        return PL_type_error("pointer", ldap_t);
+    }
+
+    char* dn;
+    if (!PL_get_atom_chars(dn_t, &dn)) {
+        return PL_type_error("atom", dn_t);
+    }
+
+    char* newrdn;
+    if (!PL_get_atom_chars(newrdn_t, &newrdn)) {
+        return PL_type_error("atom", newrdn_t);
+    }
+
+    int result;
+    result = !synchronous ?
+        ldap_modrdn(ldap, dn, newrdn) :
+        !ldap_modrdn_s(ldap, dn, newrdn);
+
+    return !synchronous ? (result != -1 && PL_unify_integer(msgid_t, result)) : result;
+}
+
 static foreign_t ldap4pl_initialize(term_t ldap_t, term_t uri_t) {
     if (!PL_is_variable(ldap_t)) {
         return PL_uninstantiation_error(ldap_t);
@@ -2211,6 +2239,14 @@ static foreign_t ldap4pl_delete_ext_s(term_t ldap_t, term_t dn_t,
     return ldap4pl_update_ext0(ldap_t, dn_t, (term_t) NULL, sctrls_t, cctrls_t, (term_t) NULL, TRUE, LDAP_MOD_DELETE);
 }
 
+static foreign_t ldap4pl_modrdn(term_t ldap_t, term_t dn_t, term_t newrdn_t, term_t msgid_t) {
+    return ldap4pl_modrdn0(ldap_t, dn_t, newrdn_t, msgid_t, FALSE);
+}
+
+static foreign_t ldap4pl_modrdn_s(term_t ldap_t, term_t dn_t, term_t newrdn_t, term_t msgid_t) {
+    return ldap4pl_modrdn0(ldap_t, dn_t, newrdn_t, (term_t) NULL, TRUE);
+}
+
 static void init_constants() {
     ATOM_timeval = PL_new_atom("timeval");
     ATOM_tv_sec = PL_new_atom("tv_sec");
@@ -2359,4 +2395,6 @@ install_t install_ldap4pl() {
     PL_register_foreign("ldap4pl_modify_ext_s", 5, ldap4pl_modify_ext_s, 0);
     PL_register_foreign("ldap4pl_delete_ext", 5, ldap4pl_delete_ext, 0);
     PL_register_foreign("ldap4pl_delete_ext_s", 4, ldap4pl_delete_ext_s, 0);
+    PL_register_foreign("ldap4pl_modrdn", 4, ldap4pl_modrdn, 0);
+    PL_register_foreign("ldap4pl_modrdn_s", 3, ldap4pl_modrdn_s, 0);
 }
