@@ -54,7 +54,11 @@
     ldap_delete/3,
     ldap_delete_s/2,
     ldap_modrdn/4,
-    ldap_modrdn_s/3
+    ldap_modrdn_s/3,
+    ldap_modrdn2/5,
+    ldap_modrdn2_s/4,
+    ldap_rename/8,
+    ldap_rename_s/7
 ]).
 
 :- use_foreign_library(foreign(ldap4pl)).
@@ -228,3 +232,21 @@ ldap_modrdn(LDAP, DN, NewRDN, MsgID) :-
 
 ldap_modrdn_s(LDAP, DN, NewRDN) :-
     ldap4pl_modrdn_s(LDAP, DN, NewRDN).
+
+ldap_modrdn2(LDAP, DN, NewRDN, DeleteOldRDN, MsgID) :-
+    ldap4pl_modrdn2(LDAP, DN, NewRDN, DeleteOldRDN, MsgID).
+
+ldap_modrdn2_s(LDAP, DN, DeleteOldRDN, NewRDN) :-
+    ldap4pl_modrdn2_s(LDAP, DN, DeleteOldRDN, NewRDN).
+
+ldap_rename(LDAP, DN, NewRDN, NewSuperior, DeleteOldRDN, SCtrls, CCtrls, MsgID) :-
+    ldap4pl_rename(LDAP, DN, NewRDN, NewSuperior, DeleteOldRDN, SCtrls, CCtrls, MsgID).
+
+ldap_rename_s(LDAP, DN, NewRDN, NewSuperior, DeleteOldRDN, SCtrls, CCtrls) :-
+    ldap4pl_rename_s(LDAP, DN, NewRDN, NewSuperior, DeleteOldRDN, SCtrls, CCtrls).
+
+ldap_rename2(LDAP, DN, NewRDN, NewSuperior, DeleteOldRDN, MsgID) :-
+    ldap4pl_rename(LDAP, DN, NewRDN, NewSuperior, DeleteOldRDN, [], [], MsgID).
+
+ldap_rename2_s(LDAP, DN, NewRDN, NewSuperior, DeleteOldRDN) :-
+    ldap4pl_rename_s(LDAP, DN, NewRDN, NewSuperior, DeleteOldRDN, [], []).
