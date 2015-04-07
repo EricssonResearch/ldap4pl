@@ -2274,10 +2274,6 @@ static foreign_t ldap4pl_get_dn(term_t ldap_t, term_t entry_t, term_t dn_t) {
 static foreign_t ldap4pl_parse_result(term_t ldap_t, term_t res_t, term_t errcode_t,
                                       term_t matcheddn_t, term_t errmsg_t, term_t referrals_t,
                                       term_t sctrls_t, term_t freeit_t) {
-    if (!PL_is_variable(errcode_t)) {
-        return PL_uninstantiation_error(errcode_t);
-    }
-
     if (!PL_is_variable(matcheddn_t)) {
         return PL_uninstantiation_error(matcheddn_t);
     }
