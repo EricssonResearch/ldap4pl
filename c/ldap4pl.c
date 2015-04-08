@@ -2061,10 +2061,6 @@ static foreign_t ldap4pl_search_s(term_t ldap_t, term_t query_t, term_t timeout,
 }
 
 static foreign_t ldap4pl_count_entries(term_t ldap_t, term_t res_t, term_t count_t) {
-    if (!PL_is_variable(count_t)) {
-        return PL_uninstantiation_error(count_t);
-    }
-
     LDAP* ldap;
     if (!PL_get_pointer(ldap_t, (void**) &ldap)) {
         return PL_type_error("pointer", ldap_t);
@@ -2247,10 +2243,6 @@ static foreign_t ldap4pl_get_values(term_t ldap_t, term_t entry_t, term_t attrib
 }
 
 static foreign_t ldap4pl_get_dn(term_t ldap_t, term_t entry_t, term_t dn_t) {
-    if (!PL_is_variable(dn_t)) {
-        return PL_uninstantiation_error(dn_t);
-    }
-
     LDAP* ldap;
     if (!PL_get_pointer(ldap_t, (void**) &ldap)) {
         return PL_type_error("pointer", ldap_t);
@@ -2358,6 +2350,10 @@ error:
 }
 
 static foreign_t ldap4pl_err2string(term_t errcode_t, term_t errstring_t) {
+    if (!PL_is_variable(errstring_t)) {
+        return PL_uninstantiation_error(errstring_t);
+    }
+
     atom_t errcode;
     if (!PL_get_atom(errcode_t, &errcode)) {
         return PL_type_error("atom", errcode_t);
