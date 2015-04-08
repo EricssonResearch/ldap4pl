@@ -31,6 +31,12 @@ static atom_t ATOM_ldap_auth_krbv41;
 static atom_t ATOM_ldap_auth_krbv42;
 
 static atom_t ATOM_ldap_opt_protocol_version;
+static atom_t ATOM_ldap_opt_deref;
+
+static atom_t ATOM_ldap_deref_never;
+static atom_t ATOM_ldap_deref_searching;
+static atom_t ATOM_ldap_deref_finding;
+static atom_t ATOM_ldap_deref_always;
 
 static atom_t ATOM_ldap_res_bind;
 static atom_t ATOM_ldap_res_search_entry;
@@ -154,7 +160,9 @@ int map_option(atom_t option, int* option_int) {
     int result = TRUE;
     if (option == ATOM_ldap_opt_protocol_version) {
         *option_int = LDAP_OPT_PROTOCOL_VERSION;
-    } else {
+    } else if (option == ATOM_ldap_opt_deref) {
+        *option_int = LDAP_OPT_DEREF;
+    }else {
         result = FALSE;
     }
     return result;
@@ -378,6 +386,22 @@ int map_scope(atom_t scope, int* scope_int) {
         result = FALSE;
     }
     return result;
+}
+
+int map_option_value(atom_t value, int* value_int) {
+    int result = TRUE;
+    if (value == ATOM_ldap_deref_never) {
+        *value_int = LDAP_DEREF_NEVER;
+    } else if (value == ATOM_ldap_deref_searching) {
+        *value_int = LDAP_DEREF_SEARCHING;
+    } else if (value == ATOM_ldap_deref_finding) {
+        *value_int = LDAP_DEREF_FINDING;
+    } else if (value == ATOM_ldap_deref_always) {
+        *value_int = LDAP_DEREF_ALWAYS;
+    } else {
+        result = FALSE;
+    }
+    return result;    
 }
 
 /*
@@ -1932,9 +1956,18 @@ static foreign_t ldap4pl_set_option(term_t ldap_t, term_t option_t, term_t inval
     }
 
     if (PL_is_atom(invalue_t)) {
+        atom_t invalue_a;
+        if (!PL_get_atom(invalue_t, &invalue_a)) {
+            return PL_type_error("atom", invalue_t);
+        }
+        int invalue_int;
+        if (map_option_value(invalue_a, &invalue_int)) {
+            return !(ld_errno = ldap_set_option(ldap, option_int, &invalue_int));
+        }
+
         char* invalue;
         if (PL_get_atom_chars(invalue_t, &invalue)) {
-            return !(ld_errno = ldap_set_option(ldap, option, &invalue));
+            return !(ld_errno = ldap_set_option(ldap, option_int, &invalue));
         }
     }
 
@@ -1948,7 +1981,7 @@ static foreign_t ldap4pl_set_option(term_t ldap_t, term_t option_t, term_t inval
     if (PL_is_float(invalue_t)) {
         double invalue;
         if (PL_get_float(invalue_t, &invalue)) {
-            return !(ld_errno = ldap_set_option(ldap, option, &invalue));
+            return !(ld_errno = ldap_set_option(ldap, option_int, &invalue));
         }
     }
 
@@ -2546,6 +2579,12 @@ static void init_constants() {
     ATOM_ldap_auth_krbv42 = PL_new_atom("ldap_auth_krbv42");
 
     ATOM_ldap_opt_protocol_version = PL_new_atom("ldap_opt_protocol_version");
+    ATOM_ldap_opt_deref = PL_new_atom("ldap_opt_deref");
+
+    ATOM_ldap_deref_never = PL_new_atom("ldap_deref_never");
+    ATOM_ldap_deref_searching = PL_new_atom("ldap_deref_searching");
+    ATOM_ldap_deref_finding = PL_new_atom("ldap_deref_finding");
+    ATOM_ldap_deref_always = PL_new_atom("ldap_deref_always");
 
     ATOM_ldap_res_bind = PL_new_atom("ldap_res_bind");
     ATOM_ldap_res_search_entry = PL_new_atom("ldap_res_search_entry");

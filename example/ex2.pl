@@ -9,6 +9,7 @@ search :-
     ldap_initialize(LDAP, 'ldap://172.16.0.223:389'),
     debug(ex2, 'LDAP ~w', [LDAP]),
     ldap_set_option(LDAP, ldap_opt_protocol_version, 3),
+    ldap_set_option(LDAP, ldap_opt_deref, ldap_deref_never),
     ldap_simple_bind_s(LDAP, 'cn=admin,dc=cf,dc=ericsson,dc=net', s3cret),
     ldap_search(LDAP,
         query(
