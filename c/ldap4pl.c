@@ -33,6 +33,7 @@ static atom_t ATOM_ldap_auth_krbv42;
 static atom_t ATOM_ldap_opt_protocol_version;
 static atom_t ATOM_ldap_opt_deref;
 static atom_t ATOM_ldap_opt_diagnostic_message;
+static atom_t ATOM_ldap_opt_matched_dn;
 
 static atom_t ATOM_ldap_deref_never;
 static atom_t ATOM_ldap_deref_searching;
@@ -165,6 +166,8 @@ int map_option(atom_t option, int* option_int) {
         *option_int = LDAP_OPT_DEREF;
     } else if (option == ATOM_ldap_opt_diagnostic_message) {
         *option_int = LDAP_OPT_DIAGNOSTIC_MESSAGE;
+    } else if (option = ATOM_ldap_opt_matched_dn) {
+        *option_int = LDAP_OPT_MATCHED_DN;
     } else {
         result = FALSE;
     }
@@ -2584,6 +2587,7 @@ static void init_constants() {
     ATOM_ldap_opt_protocol_version = PL_new_atom("ldap_opt_protocol_version");
     ATOM_ldap_opt_deref = PL_new_atom("ldap_opt_deref");
     ATOM_ldap_opt_diagnostic_message = PL_new_atom("ldap_opt_diagnostic_message");
+    ATOM_ldap_opt_matched_dn = PL_new_atom("ldap_opt_matched_dn");
 
     ATOM_ldap_deref_never = PL_new_atom("ldap_deref_never");
     ATOM_ldap_deref_searching = PL_new_atom("ldap_deref_searching");
