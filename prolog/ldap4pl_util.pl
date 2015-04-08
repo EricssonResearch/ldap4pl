@@ -1,11 +1,33 @@
 :- module(ldap4pl_util, [
-    ldap_parse_search_result/3,
-    ldap_simple_auth/3,
-    ldap_add_s2/3,
-    ldap_modify_s2/3
+    ldap_parse_search_result/3,    % +LDAP, +Result, -List
+    ldap_simple_auth/3,            % +URL, +Who, +Passwd
+    ldap_add_s2/3,                 % +LDAP, +DN, +Entry
+    ldap_modify_s2/3               % +LDAP, +DN, +Operations
 ]).
 
+/** <module> Utilities to make life easier.
+
+This module provides utilities for [OpenLDAP](http://www.openldap.org) API
+Prolog bindings.
+
+@author Hongxin Liang
+@license TBD
+@see http://www.openldap.org/
+*/
+
 :- use_module(library(ldap4pl)).
+
+%% ldap_parse_search_result(+LDAP, +Result, -List) is det.
+%
+% Walk through LDAP search results chain and build up a
+% complete list in the format of:
+%
+% ==
+% [
+%     _{dn:..., attributes:_{a1:[], a2:[]}}
+%     _{dn:..., attributes:_{a1:[], a2:[]}}
+% ]
+% ==
 
 ldap_parse_search_result(LDAP, Result, List) :-
     iterate_entries(LDAP, Result, List).
@@ -48,12 +70,25 @@ iterate_attributes0(LDAP, Entry, Ber, Attributes) :-
         Attributes = _{}
     ).
 
+%% ldap_simple_auth(+URI, +Who, +Passwd) is semidet.
+%
+% Do an LDAP simple authentication in a simple way.
+
 ldap_simple_auth(URI, Who, Passwd) :-
     setup_call_cleanup(
         (ldap_initialize(LDAP, URI), ldap_set_option(LDAP, ldap_opt_protocol_version, 3)),
         ldap_simple_bind_s(LDAP, Who, Passwd),
         ldap_unbind(LDAP)
     ).
+
+%% ldap_add_s2(+LDAP, +DN, +Entry) is semidet.
+%
+% The same as ldap4pl:ldap_add_s/3 while with
+% simplified entry format:
+%
+% ==
+% _{objectClass:[posixGroup, top], cn:..., gidNumber:..., description:...}
+% ==
 
 ldap_add_s2(LDAP, DN, Entry) :-
     dict_pairs(Entry, _, Pairs),
@@ -69,6 +104,21 @@ build_ldapmod_add_list([Attribute-V|T], List) :-
     ),
     LDAPMod = ldapmod(mod_op([ldap_mod_add]), mod_type(Attribute), mod_values(Values)),
     List = [LDAPMod|List0].
+
+%% ldap_modify_s2(+LDAP, +DN, +Operations) is semidet.
+%
+% The same as ldap4pl:ldap_modify_s/3 while with
+% simplified operation format:
+%
+% ==
+% [
+%     add-street:..,
+%     delete-street:...,
+%     add-street:[...],
+%     replace-street:[...],
+%     delete-street
+% ]
+% ==
 
 ldap_modify_s2(LDAP, DN, Operations) :-
     build_ldapmod_modify_list(Operations, List),
