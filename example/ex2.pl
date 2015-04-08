@@ -32,6 +32,6 @@ search :-
     ldap_unbind(LDAP).
 
 auth :-
-    ldap_auth('ldap://172.16.0.223:389',
+    ldap_simple_auth('ldap://172.16.0.223:389',
         'cn=admin,dc=cf,dc=ericsson,dc=net',
         s3cret).

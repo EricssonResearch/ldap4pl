@@ -1,6 +1,6 @@
 :- module(ldap4pl_util, [
     ldap_parse_search_result/3,
-    ldap_auth/3
+    ldap_simple_auth/3
 ]).
 
 :- use_module(library(ldap4pl)).
@@ -46,7 +46,7 @@ iterate_attributes0(LDAP, Entry, Ber, Attributes) :-
         Attributes = _{}
     ).
 
-ldap_auth(URI, Who, Passwd) :-
+ldap_simple_auth(URI, Who, Passwd) :-
     setup_call_cleanup(
         (ldap_initialize(LDAP, URI), ldap_set_option(LDAP, ldap_opt_protocol_version, 3)),
         ldap_simple_bind_s(LDAP, Who, Passwd),
