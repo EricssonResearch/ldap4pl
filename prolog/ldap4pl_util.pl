@@ -1,6 +1,8 @@
 :- module(ldap4pl_util, [
     ldap_parse_search_result/3,
-    ldap_simple_auth/3
+    ldap_simple_auth/3,
+    ldap_add_s2/3,
+    ldap_modify_s2/3
 ]).
 
 :- use_module(library(ldap4pl)).
@@ -52,3 +54,37 @@ ldap_simple_auth(URI, Who, Passwd) :-
         ldap_simple_bind_s(LDAP, Who, Passwd),
         ldap_unbind(LDAP)
     ).
+
+ldap_add_s2(LDAP, DN, Entry) :-
+    dict_pairs(Entry, _, Pairs),
+    build_ldapmod_add_list(Pairs, List),
+    ldap_add_s(LDAP, DN, List).
+
+build_ldapmod_add_list([], []) :- !.
+build_ldapmod_add_list([Attribute-V|T], List) :-
+    build_ldapmod_add_list(T, List0),
+    (   is_list(V)
+    ->  Values = V
+    ;   Values = [V]
+    ),
+    LDAPMod = ldapmod(mod_op([ldap_mod_add]), mod_type(Attribute), mod_values(Values)),
+    List = [LDAPMod|List0].
+
+ldap_modify_s2(LDAP, DN, Operations) :-
+    build_ldapmod_modify_list(Operations, List),
+    ldap_modify_s(LDAP, DN, List).
+
+build_ldapmod_modify_list([], []) :- !.
+build_ldapmod_modify_list([Op-Attribute:V|T], List) :- !,
+    build_ldapmod_modify_list(T, List0),
+    (   is_list(V)
+    ->  Values = V
+    ;   Values = [V]
+    ),
+    atom_concat(ldap_mod_, Op, Operation),
+    LDAPMod = ldapmod(mod_op([Operation]), mod_type(Attribute), mod_values(Values)),
+    List = [LDAPMod|List0].
+build_ldapmod_modify_list([delete-Attribute|T], List) :- !,
+    build_ldapmod_modify_list(T, List0),
+    LDAPMod = ldapmod(mod_op([ldap_mod_delete]), mod_type(Attribute)),
+    List = [LDAPMod|List0].

@@ -35,3 +35,38 @@ auth :-
     ldap_simple_auth('ldap://172.16.0.223:389',
         'cn=admin,dc=cf,dc=ericsson,dc=net',
         s3cret).
+
+add :-
+    ldap_initialize(LDAP, 'ldap://172.16.0.223:389'),
+    debug(ex2, 'LDAP ~w', [LDAP]),
+    ldap_set_option(LDAP, ldap_opt_protocol_version, 3),
+    DN = 'cn=admin,dc=cf,dc=ericsson,dc=net',
+    ldap_simple_bind_s(LDAP, DN, s3cret),
+    DN1 = 'cn=test,ou=groups,dc=cf,dc=ericsson,dc=net',
+    ldap_add_s2(LDAP, DN1, _{objectClass:[posixGroup, top], cn:test, gidNumber:'20000', description:hello}),
+    ldap_unbind(LDAP).
+
+modify :-
+    ldap_initialize(LDAP, 'ldap://172.16.0.223:389'),
+    debug(ex2, 'LDAP ~w', [LDAP]),
+    ldap_set_option(LDAP, ldap_opt_protocol_version, 3),
+    DN = 'cn=admin,dc=cf,dc=ericsson,dc=net',
+    ldap_simple_bind_s(LDAP, DN, s3cret),
+    ldap_modify_s2(LDAP, DN, [
+        add-street:hello,
+        delete-street:hello,
+        add-street:hello,
+        replace-street:[goodbye, world],
+        delete-street
+    ]),
+    ldap_unbind(LDAP).
+
+delete :-
+    ldap_initialize(LDAP, 'ldap://172.16.0.223:389'),
+    debug(ex2, 'LDAP ~w', [LDAP]),
+    ldap_set_option(LDAP, ldap_opt_protocol_version, 3),
+    DN = 'cn=admin,dc=cf,dc=ericsson,dc=net',
+    ldap_simple_bind_s(LDAP, DN, s3cret),
+    DN1 = 'cn=test,ou=groups,dc=cf,dc=ericsson,dc=net',
+    ldap_delete_s(LDAP, DN1),
+    ldap_unbind(LDAP).

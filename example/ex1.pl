@@ -124,10 +124,12 @@ modify :-
     ldap_set_option(LDAP, ldap_opt_protocol_version, 3),
     DN = 'cn=admin,dc=cf,dc=ericsson,dc=net',
     ldap_simple_bind_s(LDAP, DN, s3cret),
-    ldap_modify_s(LDAP, DN, [ldapmod(mod_op([ldap_mod_add]), mod_type(street), mod_values([hello]))]),
-    ldap_modify_s(LDAP, DN, [ldapmod(mod_op([ldap_mod_delete]), mod_type(street), mod_values([hello]))]),
-    ldap_modify_s(LDAP, DN, [ldapmod(mod_op([ldap_mod_add]), mod_type(street), mod_values([hello]))]),
-    ldap_modify_s(LDAP, DN, [ldapmod(mod_op([ldap_mod_replace]), mod_type(street), mod_values([goodbye, world]))]),
+    ldap_modify_s(LDAP, DN, [
+        ldapmod(mod_op([ldap_mod_add]), mod_type(street), mod_values([hello])),
+        ldapmod(mod_op([ldap_mod_delete]), mod_type(street), mod_values([hello])),
+        ldapmod(mod_op([ldap_mod_replace]), mod_type(street), mod_values([goodbye, world])),
+        ldapmod(mod_op([ldap_mod_delete]), mod_type(street))
+    ]),
     ldap_unbind(LDAP).
 
 delete :-
