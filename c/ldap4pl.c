@@ -1,3 +1,4 @@
+#include <sys/time.h>
 #include <SWI-Prolog.h>
 #include <SWI-Stream.h>
 #include <ldap.h>
