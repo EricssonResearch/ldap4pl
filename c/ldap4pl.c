@@ -35,11 +35,14 @@ static atom_t ATOM_ldap_opt_deref;
 static atom_t ATOM_ldap_opt_diagnostic_message;
 static atom_t ATOM_ldap_opt_matched_dn;
 static atom_t ATOM_ldap_opt_referral_urls;
+static atom_t ATOM_ldap_opt_restart;
 
 static atom_t ATOM_ldap_deref_never;
 static atom_t ATOM_ldap_deref_searching;
 static atom_t ATOM_ldap_deref_finding;
 static atom_t ATOM_ldap_deref_always;
+static atom_t ATOM_ldap_opt_off;
+static atom_t ATOM_ldap_opt_on;
 
 static atom_t ATOM_ldap_res_bind;
 static atom_t ATOM_ldap_res_search_entry;
@@ -171,6 +174,8 @@ int map_option(atom_t option, int* option_int) {
         *option_int = LDAP_OPT_MATCHED_DN;
     } else if (option == ATOM_ldap_opt_referral_urls) {
         *option_int = LDAP_OPT_REFERRAL_URLS;
+    } else if (option == ATOM_ldap_opt_restart) {
+        *option_int = LDAP_OPT_RESTART;
     } else {
         result = FALSE;
     }
@@ -407,6 +412,10 @@ int map_option_value(atom_t value, int* value_int) {
         *value_int = LDAP_DEREF_FINDING;
     } else if (value == ATOM_ldap_deref_always) {
         *value_int = LDAP_DEREF_ALWAYS;
+    } else if (value == ATOM_ldap_opt_off) {
+        *value_int = (int*) LDAP_OPT_OFF;
+    } else if (value == ATOM_ldap_opt_on) {
+        *value_int = (int*) LDAP_OPT_ON;
     } else {
         result = FALSE;
     }
@@ -2600,11 +2609,14 @@ static void init_constants() {
     ATOM_ldap_opt_diagnostic_message = PL_new_atom("ldap_opt_diagnostic_message");
     ATOM_ldap_opt_matched_dn = PL_new_atom("ldap_opt_matched_dn");
     ATOM_ldap_opt_referral_urls = PL_new_atom("ldap_opt_referral_urls");
+    ATOM_ldap_opt_restart = PL_new_atom("ldap_opt_restart");
 
     ATOM_ldap_deref_never = PL_new_atom("ldap_deref_never");
     ATOM_ldap_deref_searching = PL_new_atom("ldap_deref_searching");
     ATOM_ldap_deref_finding = PL_new_atom("ldap_deref_finding");
     ATOM_ldap_deref_always = PL_new_atom("ldap_deref_always");
+    ATOM_ldap_opt_off = PL_new_atom("ldap_opt_off");
+    ATOM_ldap_opt_on = PL_new_atom("ldap_opt_on");
 
     ATOM_ldap_res_bind = PL_new_atom("ldap_res_bind");
     ATOM_ldap_res_search_entry = PL_new_atom("ldap_res_search_entry");

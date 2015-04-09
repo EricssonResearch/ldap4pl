@@ -13,6 +13,7 @@ search :-
     ldap_set_option(LDAP, ldap_opt_diagnostic_message, hello),
     ldap_set_option(LDAP, ldap_opt_matched_dn, hello),
     ldap_set_option(LDAP, ldap_opt_referral_urls, [a, b, c]),
+    ldap_set_option(LDAP, ldap_opt_restart, ldap_opt_on),
     ldap_simple_bind_s(LDAP, 'cn=admin,dc=cf,dc=ericsson,dc=net', s3cret),
     ldap_search(LDAP,
         query(
