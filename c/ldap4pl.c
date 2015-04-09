@@ -1467,10 +1467,10 @@ int ldap4pl_get_option0(LDAP* ldap, int option, term_t outvalue_t) {
     case LDAP_OPT_RESTART: {
         int outvalue;
         if (!(ld_errno = ldap_get_option(ldap, option, &outvalue))) {
-            if (outvalue == 0) {
-                return PL_unify_atom(outvalue_t, ATOM_ldap_opt_off);
-            } else {
+            if (outvalue) {
                 return PL_unify_atom(outvalue_t, ATOM_ldap_opt_on);
+            } else {
+                return PL_unify_atom(outvalue_t, ATOM_ldap_opt_off);
             }
         }
         break;
