@@ -35,6 +35,7 @@ static atom_t ATOM_ldap_opt_deref;
 static atom_t ATOM_ldap_opt_diagnostic_message;
 static atom_t ATOM_ldap_opt_matched_dn;
 static atom_t ATOM_ldap_opt_referral_urls;
+static atom_t ATOM_ldap_opt_referrals;
 static atom_t ATOM_ldap_opt_restart;
 static atom_t ATOM_ldap_opt_result_code;
 static atom_t ATOM_ldap_opt_sizelimit;
@@ -167,9 +168,7 @@ int get_list_size(term_t list, int* size) {
 
 int map_option(atom_t option, int* option_int) {
     int result = TRUE;
-    if (option == ATOM_ldap_opt_protocol_version) {
-        *option_int = LDAP_OPT_PROTOCOL_VERSION;
-    } else if (option == ATOM_ldap_opt_deref) {
+    if (option == ATOM_ldap_opt_deref) {
         *option_int = LDAP_OPT_DEREF;
     } else if (option == ATOM_ldap_opt_diagnostic_message) {
         *option_int = LDAP_OPT_DIAGNOSTIC_MESSAGE;
@@ -177,6 +176,10 @@ int map_option(atom_t option, int* option_int) {
         *option_int = LDAP_OPT_MATCHED_DN;
     } else if (option == ATOM_ldap_opt_referral_urls) {
         *option_int = LDAP_OPT_REFERRAL_URLS;
+    } else if (option == ATOM_ldap_opt_referrals) {
+        *option_int = LDAP_OPT_REFERRALS;
+    } else if (option == ATOM_ldap_opt_protocol_version) {
+        *option_int = LDAP_OPT_PROTOCOL_VERSION;
     } else if (option == ATOM_ldap_opt_restart) {
         *option_int = LDAP_OPT_RESTART;
     } else if (option == ATOM_ldap_opt_result_code) {
@@ -422,9 +425,9 @@ int map_option_value(atom_t value, int* value_int) {
     } else if (value == ATOM_ldap_deref_always) {
         *value_int = LDAP_DEREF_ALWAYS;
     } else if (value == ATOM_ldap_opt_off) {
-        *value_int = (int*) LDAP_OPT_OFF;
+        *value_int = (int) LDAP_OPT_OFF;
     } else if (value == ATOM_ldap_opt_on) {
-        *value_int = (int*) LDAP_OPT_ON;
+        *value_int = (int) LDAP_OPT_ON;
     } else {
         result = FALSE;
     }
@@ -1378,6 +1381,50 @@ int ldap4pl_sasl_bind0(term_t ldap_t, term_t dn_t, term_t mechanism_t,
     }
 }
 
+int ldap4pl_set_option0(LDAP* ldap, int option, term_t invalue_t) {
+    switch (option) {
+    case LDAP_OPT_PROTOCOL_VERSION:
+    case LDAP_OPT_RESULT_CODE:
+    case LDAP_OPT_SIZELIMIT:
+    case LDAP_OPT_TIMELIMIT: {
+        int invalue;
+        if (PL_get_integer(invalue_t, &invalue)) {
+            return !(ld_errno = ldap_set_option(ldap, option, &invalue));
+        }
+        break;
+    }
+    case LDAP_OPT_DIAGNOSTIC_MESSAGE:
+    case LDAP_OPT_MATCHED_DN: {
+        char* invalue;
+        if (PL_get_atom_chars(invalue_t, &invalue)) {
+            return !(ld_errno = ldap_set_option(ldap, option, invalue));
+        }
+        break;
+    }
+    case LDAP_OPT_DEREF:
+    case LDAP_OPT_REFERRALS:
+    case LDAP_OPT_RESTART: {
+        atom_t invalue_a;
+        if (!PL_get_atom(invalue_t, &invalue_a)) {
+            return PL_type_error("atom", invalue_t);
+        }
+        int invalue;
+        if (map_option_value(invalue_a, &invalue)) {
+            return !(ld_errno = ldap_set_option(ldap, option, &invalue));
+        }
+        break;
+    }
+    case LDAP_OPT_REFERRAL_URLS: {
+        char** invalue;
+        if (build_chars_array(invalue_t, &invalue)) {
+            return !(ld_errno = ldap_set_option(ldap, option, invalue));
+        }
+        break;
+    }
+    }
+    PL_fail;
+}
+
 int ldap4pl_search_ext0(term_t ldap_t, term_t query_t, term_t sctrls_t,
                         term_t cctrls_t, term_t timeout_t, term_t sizelimit_t,
                         term_t msgid_t, term_t res_t, int synchronous) {
@@ -1982,50 +2029,12 @@ static foreign_t ldap4pl_set_option(term_t ldap_t, term_t option_t, term_t inval
         return PL_type_error("number", option_t);
     }
 
-    if (PL_is_atom(invalue_t)) {
-        atom_t invalue_a;
-        if (!PL_get_atom(invalue_t, &invalue_a)) {
-            return PL_type_error("atom", invalue_t);
-        }
-        int invalue_int;
-        if (map_option_value(invalue_a, &invalue_int)) {
-            return !(ld_errno = ldap_set_option(ldap, option_int, &invalue_int));
-        }
-
-        char* invalue;
-        if (PL_get_atom_chars(invalue_t, &invalue)) {
-            return !(ld_errno = ldap_set_option(ldap, option_int, invalue));
-        }
-    }
-
-    if (PL_is_list(invalue_t)) {
-        char** invalue;
-        if (!build_chars_array(invalue_t, &invalue)) {
-            PL_fail;
-        }
-        return !(ld_errno = ldap_set_option(ldap, option_int, invalue));
-    }
-
-    if (PL_is_integer(invalue_t)) {
-        int invalue;
-        if (PL_get_integer(invalue_t, &invalue)) {
-            return !(ld_errno = ldap_set_option(ldap, option_int, &invalue));
-        }
-    }
-
-    if (PL_is_float(invalue_t)) {
-        double invalue;
-        if (PL_get_float(invalue_t, &invalue)) {
-            return !(ld_errno = ldap_set_option(ldap, option_int, &invalue));
-        }
-    }
-
-    PL_fail;
+    return ldap4pl_set_option0(ldap, option_int, invalue_t);
 }
 
 // TODO: implement
 static foreign_t ldap4pl_get_option(term_t ldap_t, term_t option_t, term_t outvalue_t) {
-    PL_succeed;
+    PL_fail;
 }
 
 static foreign_t ldap4pl_result(term_t ldap_t, term_t msgid_t, term_t all_t, term_t timeout_t, term_t res_t) {
@@ -2618,6 +2627,7 @@ static void init_constants() {
     ATOM_ldap_opt_diagnostic_message = PL_new_atom("ldap_opt_diagnostic_message");
     ATOM_ldap_opt_matched_dn = PL_new_atom("ldap_opt_matched_dn");
     ATOM_ldap_opt_referral_urls = PL_new_atom("ldap_opt_referral_urls");
+    ATOM_ldap_opt_referrals = PL_new_atom("ldap_opt_referrals");
     ATOM_ldap_opt_restart = PL_new_atom("ldap_opt_restart");
     ATOM_ldap_opt_result_code = PL_new_atom("ldap_opt_result_code");
     ATOM_ldap_opt_sizelimit = PL_new_atom("ldap_opt_sizelimit");

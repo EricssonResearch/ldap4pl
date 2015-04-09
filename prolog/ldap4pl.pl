@@ -267,7 +267,19 @@ ldap_parse_sasl_bind_result(LDAP, Result, ServerCred, FreeIt) :-
 %
 % Use ldap_get_ld_errno/1 to get last error.
 %
-% @tbd This API is not fully implemented yet and only =ldap_opt_protocol_version= is supported.
+% @tbd This API is not fully implemented yet and supported options are:
+% ==
+% LDAP_OPT_DEREF
+% LDAP_OPT_DIAGNOSTIC_MESSAGE
+% LDAP_OPT_MATCHED_DN
+% LDAP_OPT_PROTOCOL_VERSION
+% LDAP_OPT_REFERRAL_URLS
+% LDAP_OPT_REFERRALS
+% LDAP_OPT_RESTART
+% LDAP_OPT_RESULT_CODE
+% LDAP_OPT_SIZELIMIT
+% LDAP_OPT_TIMELIMIT
+% ==
 
 ldap_set_option(LDAP, Option, Value) :-
     ldap4pl_set_option(LDAP, Option, Value).
