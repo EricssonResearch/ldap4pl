@@ -36,6 +36,9 @@ static atom_t ATOM_ldap_opt_diagnostic_message;
 static atom_t ATOM_ldap_opt_matched_dn;
 static atom_t ATOM_ldap_opt_referral_urls;
 static atom_t ATOM_ldap_opt_restart;
+static atom_t ATOM_ldap_opt_result_code;
+static atom_t ATOM_ldap_opt_sizelimit;
+static atom_t ATOM_ldap_opt_timelimit;
 
 static atom_t ATOM_ldap_deref_never;
 static atom_t ATOM_ldap_deref_searching;
@@ -176,6 +179,12 @@ int map_option(atom_t option, int* option_int) {
         *option_int = LDAP_OPT_REFERRAL_URLS;
     } else if (option == ATOM_ldap_opt_restart) {
         *option_int = LDAP_OPT_RESTART;
+    } else if (option == ATOM_ldap_opt_result_code) {
+        *option_int = LDAP_OPT_RESULT_CODE;
+    } else if (option == ATOM_ldap_opt_sizelimit) {
+        *option_int = LDAP_OPT_SIZELIMIT;
+    } else if (option == ATOM_ldap_opt_timelimit) {
+        *option_int = LDAP_OPT_TIMELIMIT;
     } else {
         result = FALSE;
     }
@@ -2610,6 +2619,9 @@ static void init_constants() {
     ATOM_ldap_opt_matched_dn = PL_new_atom("ldap_opt_matched_dn");
     ATOM_ldap_opt_referral_urls = PL_new_atom("ldap_opt_referral_urls");
     ATOM_ldap_opt_restart = PL_new_atom("ldap_opt_restart");
+    ATOM_ldap_opt_result_code = PL_new_atom("ldap_opt_result_code");
+    ATOM_ldap_opt_sizelimit = PL_new_atom("ldap_opt_sizelimit");
+    ATOM_ldap_opt_timelimit = PL_new_atom("ldap_opt_timelimit");
 
     ATOM_ldap_deref_never = PL_new_atom("ldap_deref_never");
     ATOM_ldap_deref_searching = PL_new_atom("ldap_deref_searching");
