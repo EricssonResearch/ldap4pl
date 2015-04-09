@@ -750,7 +750,11 @@ int build_timeval(term_t timeval_t, TimeVal** timeval) {
             }
 
             suseconds_t tv_usec;
-            if (!PL_get_integer(tv_usec_t, (int*) &tv_usec)) {
+#ifdef __linux__
+            if (!PL_get_long(tv_usec_t, &tv_usec)) {
+#else
+            if (!PL_get_integer(tv_usec_t, &tv_usec)) {
+#endif
                 PL_type_error("number", tv_usec_t);
                 goto error;
             }
