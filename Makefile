@@ -1,6 +1,14 @@
 SOBJ=$(PACKSODIR)/ldap4pl.$(SOEXT)
 LIBS=-lldap
 
+ifeq "$(DEBUG)" "1"
+	CFLAGS += -DO_DEBUG
+endif
+
+ifeq "$(CC)" "gcc"
+	CFLAGS += -std=c99 -DLDAP_DEPRECATED
+endif
+
 all:	$(SOBJ)
 
 $(SOBJ): c/ldap4pl.o
@@ -8,7 +16,7 @@ $(SOBJ): c/ldap4pl.o
 	$(LD) $(LDSOFLAGS) $(SWISOLIB) -o $@ $< $(LIBS)
 
 c/ldap4pl.o:
-	$(CC) $(CFLAGS) -std=c99 -DO_DEBUG -DLDAP_DEPRECATED -c -o c/ldap4pl.o c/ldap4pl.c
+	$(CC) $(CFLAGS) -c -o c/ldap4pl.o c/ldap4pl.c
 
 check::
 install::
