@@ -8,7 +8,7 @@ $(SOBJ): c/ldap4pl.o
 	$(LD) $(LDSOFLAGS) $(SWISOLIB) -o $@ $< $(LIBS)
 
 c/ldap4pl.o:
-	$(CC) $(CFLAGS) -std=c99 -DO_DEBUG -c -o c/ldap4pl.o c/ldap4pl.c
+	$(CC) $(CFLAGS) -std=c99 -DO_DEBUG -DLDAP_DEPRECATED -c -o c/ldap4pl.o c/ldap4pl.c
 
 check::
 install::
