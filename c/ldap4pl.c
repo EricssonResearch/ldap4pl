@@ -414,26 +414,6 @@ int map_scope(atom_t scope, int* scope_int) {
     return result;
 }
 
-int map_option_value(atom_t value, int* value_int) {
-    int result = TRUE;
-    if (value == ATOM_ldap_deref_never) {
-        *value_int = LDAP_DEREF_NEVER;
-    } else if (value == ATOM_ldap_deref_searching) {
-        *value_int = LDAP_DEREF_SEARCHING;
-    } else if (value == ATOM_ldap_deref_finding) {
-        *value_int = LDAP_DEREF_FINDING;
-    } else if (value == ATOM_ldap_deref_always) {
-        *value_int = LDAP_DEREF_ALWAYS;
-    } else if (value == ATOM_ldap_opt_off) {
-        *value_int = (int) LDAP_OPT_OFF;
-    } else if (value == ATOM_ldap_opt_on) {
-        *value_int = (int) LDAP_OPT_ON;
-    } else {
-        result = FALSE;
-    }
-    return result;
-}
-
 /*
  * berval(bv_len(12), bv_val(atom))
  */
@@ -1401,23 +1381,106 @@ int ldap4pl_set_option0(LDAP* ldap, int option, term_t invalue_t) {
         }
         break;
     }
-    case LDAP_OPT_DEREF:
+    case LDAP_OPT_DEREF: {
+        atom_t invalue_a;
+        if (!PL_get_atom(invalue_t, &invalue_a)) {
+            return PL_type_error("atom", invalue_t);
+        }
+        int invalue;
+        if (invalue_a == ATOM_ldap_deref_never) {
+            invalue = LDAP_DEREF_NEVER;
+        } else if (invalue_a == ATOM_ldap_deref_searching) {
+            invalue = LDAP_DEREF_SEARCHING;
+        } else if (invalue_a == ATOM_ldap_deref_finding) {
+            invalue = LDAP_DEREF_FINDING;
+        } else if (invalue_a == ATOM_ldap_deref_always) {
+            invalue = LDAP_DEREF_ALWAYS;
+        } else {
+            PL_fail;
+        }
+        return !(ld_errno = ldap_set_option(ldap, option, &invalue));
+    }
     case LDAP_OPT_REFERRALS:
     case LDAP_OPT_RESTART: {
         atom_t invalue_a;
         if (!PL_get_atom(invalue_t, &invalue_a)) {
             return PL_type_error("atom", invalue_t);
         }
-        int invalue;
-        if (map_option_value(invalue_a, &invalue)) {
-            return !(ld_errno = ldap_set_option(ldap, option, &invalue));
+        if (invalue_a == ATOM_ldap_opt_on) {
+            return !(ld_errno = ldap_set_option(ldap, option, LDAP_OPT_ON));
+        } else if (invalue_a == ATOM_ldap_opt_off) {
+            return !(ld_errno = ldap_set_option(ldap, option, LDAP_OPT_OFF));
+        } else {
+            PL_fail;
         }
-        break;
     }
     case LDAP_OPT_REFERRAL_URLS: {
         char** invalue;
         if (build_chars_array(invalue_t, &invalue)) {
             return !(ld_errno = ldap_set_option(ldap, option, invalue));
+        }
+        break;
+    }
+    }
+    PL_fail;
+}
+
+int ldap4pl_get_option0(LDAP* ldap, int option, term_t outvalue_t) {
+    switch (option) {
+    case LDAP_OPT_PROTOCOL_VERSION:
+    case LDAP_OPT_RESULT_CODE:
+    case LDAP_OPT_SIZELIMIT:
+    case LDAP_OPT_TIMELIMIT: {
+        int outvalue;
+        if (!(ld_errno = ldap_get_option(ldap, option, &outvalue))) {
+            return PL_unify_integer(outvalue_t, outvalue);
+        }
+        break;
+    }
+    case LDAP_OPT_DIAGNOSTIC_MESSAGE:
+    case LDAP_OPT_MATCHED_DN: {
+        char* outvalue;
+        if (!(ld_errno = ldap_get_option(ldap, option, &outvalue))) {
+            int result = PL_unify_atom_chars(outvalue_t, outvalue);
+            ldap_memfree(outvalue);
+            return result;
+        }
+        break;
+    }
+    case LDAP_OPT_DEREF: {
+        int outvalue;
+        if (!(ld_errno = ldap_get_option(ldap, option, &outvalue))) {
+            switch (outvalue) {
+            case LDAP_DEREF_NEVER:
+                return PL_unify_atom(outvalue_t, ATOM_ldap_deref_never);
+            case LDAP_DEREF_SEARCHING:
+                return PL_unify_atom(outvalue_t, ATOM_ldap_deref_searching);
+            case LDAP_DEREF_FINDING:
+                return PL_unify_atom(outvalue_t, ATOM_ldap_deref_finding);
+            case LDAP_DEREF_ALWAYS:
+                return PL_unify_atom(outvalue_t, ATOM_ldap_deref_always);
+            }
+        }
+        break;
+    }
+    case LDAP_OPT_REFERRALS:
+    case LDAP_OPT_RESTART: {
+        int outvalue;
+        if (!(ld_errno = ldap_get_option(ldap, option, &outvalue))) {
+            if (outvalue == 0) {
+                return PL_unify_atom(outvalue_t, ATOM_ldap_opt_off);
+            } else {
+                return PL_unify_atom(outvalue_t, ATOM_ldap_opt_on);
+            }
+        }
+        break;
+    }
+    case LDAP_OPT_REFERRAL_URLS: {
+        char** outvalue;
+        if (!(ld_errno = ldap_get_option(ldap, option, &outvalue))) {
+            int result = build_chars_t_array(outvalue, outvalue_t);
+            ldap_memvfree((void**) outvalue);
+            return result;
         }
         break;
     }
@@ -2032,9 +2095,23 @@ static foreign_t ldap4pl_set_option(term_t ldap_t, term_t option_t, term_t inval
     return ldap4pl_set_option0(ldap, option_int, invalue_t);
 }
 
-// TODO: implement
 static foreign_t ldap4pl_get_option(term_t ldap_t, term_t option_t, term_t outvalue_t) {
-    PL_fail;
+    LDAP* ldap;
+    if (!PL_get_pointer(ldap_t, (void**) &ldap)) {
+        return PL_type_error("pointer", ldap_t);
+    }
+
+    atom_t option;
+    if (!PL_get_atom(option_t, &option)) {
+        return PL_type_error("atom", option_t);
+    }
+
+    int option_int;
+    if (!map_option(option, &option_int)) {
+        return PL_type_error("number", option_t);
+    }
+
+    return ldap4pl_get_option0(ldap, option_int, outvalue_t);
 }
 
 static foreign_t ldap4pl_result(term_t ldap_t, term_t msgid_t, term_t all_t, term_t timeout_t, term_t res_t) {

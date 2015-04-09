@@ -201,7 +201,7 @@ ldap_simple_bind(LDAP, Who, Passwd, MsgID) :-
 ldap_simple_bind_s(LDAP, Who, Passwd) :-
     ldap4pl_simple_bind_s(LDAP, Who, Passwd).
 
-%% ldap_sasl_bind(+LDAP, +DN, +Mechanism, +Cred, +SCtrls, +CCtrls, -MsgID) is semidet.
+%% ldap_saesl_bind(+LDAP, +DN, +Mechanism, +Cred, +SCtrls, +CCtrls, -MsgID) is semidet.
 %
 % After an association with an LDAP server is made using ldap_initialize/2, an
 % LDAP  bind  operation  should  be performed before other operations are
@@ -291,7 +291,19 @@ ldap_set_option(LDAP, Option, Value) :-
 %
 % Use ldap_get_ld_errno/1 to get last error.
 %
-% @tbd This API is not implemented yet.
+% @tbd This API is not fully implemented yet and supported options are:
+% ==
+% LDAP_OPT_DEREF
+% LDAP_OPT_DIAGNOSTIC_MESSAGE
+% LDAP_OPT_MATCHED_DN
+% LDAP_OPT_PROTOCOL_VERSION
+% LDAP_OPT_REFERRAL_URLS
+% LDAP_OPT_REFERRALS
+% LDAP_OPT_RESTART
+% LDAP_OPT_RESULT_CODE
+% LDAP_OPT_SIZELIMIT
+% LDAP_OPT_TIMELIMIT
+% ==
 
 ldap_get_option(LDAP, Option, Value) :-
     ldap4pl_get_option(LDAP, Option, Value).
