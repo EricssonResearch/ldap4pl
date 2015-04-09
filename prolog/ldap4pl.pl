@@ -12,7 +12,7 @@
     ldap_sasl_bind_s/7,               % +LDAP, +DN, +Mechanism, +Cred, +SCtrls, +CCtrls, -ServerCred
     ldap_parse_sasl_bind_result/4,    % +LDAP, +Result, -ServerCred, +FreeIt
     ldap_set_option/3,                % +LDAP, +Option, +Value
-    ldap_get_option/3,                % +LDAP, +Option, -Value
+    ldap_get_option/3,                % +LDAP, +Option, ?Value
     ldap_result/4,                    % +LDAP, +MsgID, +All, -Result
     ldap_result/5,                    % +LDAP, +MsgID, +All, +Timeout, -Result
     ldap_msgfree/1,                   % +Msg
@@ -284,7 +284,7 @@ ldap_parse_sasl_bind_result(LDAP, Result, ServerCred, FreeIt) :-
 ldap_set_option(LDAP, Option, Value) :-
     ldap4pl_set_option(LDAP, Option, Value).
 
-%% ldap_get_option(+LDAP, +Option, -Value) is semidet.
+%% ldap_get_option(+LDAP, +Option, ?Value) is semidet.
 %
 % Provide access to options stored either in a LDAP handle
 % or as global options, where applicable.
