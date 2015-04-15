@@ -15,7 +15,7 @@ Prolog bindings.
 @see http://www.openldap.org/
 */
 
-:- use_module(library(ldap4pl)).
+:- use_module(ldap4pl).
 
 %% ldap_parse_search_result(+LDAP, +Result, -List) is det.
 %
