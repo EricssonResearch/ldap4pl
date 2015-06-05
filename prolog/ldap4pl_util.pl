@@ -10,8 +10,8 @@
 This module provides utilities for [OpenLDAP](http://www.openldap.org) API
 Prolog bindings.
 
-@author Hongxin Liang
-@license TBD
+@author Hongxin Liang <hongxin.liang@ericsson.com>
+@license /Users/ehonlia/Developer/lab/gitlab/plasticsearch
 @see http://www.openldap.org/
 */
 

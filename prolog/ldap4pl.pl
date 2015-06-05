@@ -72,8 +72,8 @@ This module provides bindings to [OpenLDAP](http://www.openldap.org) API.
 Most APIs have been implemented and the names are aligned with OpenLDAP API,
 so for detailed description please check [here](http://www.openldap.org/software/man.cgi).
 
-@author Hongxin Liang
-@license TBD
+@author Hongxin Liang <hongxin.liang@ericsson.com>
+@license Apache License Version 2.0
 @see http://www.openldap.org/
 */
 
