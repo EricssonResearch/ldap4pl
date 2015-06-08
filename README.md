@@ -5,16 +5,18 @@ This package provides Prolog bindings for [OpenLDAP](http://www.openldap.org) AP
 Most APIs have been implemented and the names are aligned with OpenLDAP API,
 so for detailed description please check [here](http://www.openldap.org/software/man.cgi).
 
+Verified with OpenLDAP 2.4.x.
+
 ## Installation
 
 Using SWI-Prolog 7 or later.
 
-    ?- pack_install('http://git.cf.ericsson.net/ehonlia/ldap4pl.git').
+    ?- pack_install('https://github.com/EricssonResearch/ldap4pl.git').
 
 Compilation on Mac OS X and GNU Linux has been verified, not on Windows.
 
 Source code available and pull requests accepted
-[here](http://git.cf.ericsson.net/ehonlia/ldap4pl).
+[here](https://github.com/EricssonResearch/ldap4pl).
 
 @author Hongxin Liang <hongxin.liang@ericsson.com>
 
