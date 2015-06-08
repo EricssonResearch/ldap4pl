@@ -216,7 +216,7 @@ ldap_simple_bind(LDAP, Who, Passwd, MsgID) :-
 ldap_simple_bind_s(LDAP, Who, Passwd) :-
     ldap4pl_simple_bind_s(LDAP, Who, Passwd).
 
-%% ldap_saesl_bind(+LDAP, +DN, +Mechanism, +Cred, +SCtrls, +CCtrls, -MsgID) is semidet.
+%% ldap_sasl_bind(+LDAP, +DN, +Mechanism, +Cred, +SCtrls, +CCtrls, -MsgID) is semidet.
 %
 % After an association with an LDAP server is made using ldap_initialize/2, an
 % LDAP  bind  operation  should  be performed before other operations are
