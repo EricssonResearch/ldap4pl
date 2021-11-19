@@ -438,13 +438,13 @@ int build_BerValue(term_t berval_t, BerValue** berval) {
     memset(_berval, 0, sizeof (BerValue));
 
     atom_t name;
-    int arity;
+    size_t arity;
     if (!PL_get_compound_name_arity(berval_t, &name, &arity)) {
         PL_type_error("compound", berval_t);
         goto error;
     }
 
-    for (int i = 1; i <= arity; ++i) {
+    for (size_t i = 1; i <= arity; ++i) {
         term_t arg_t = PL_new_term_ref();
         if (!PL_get_arg(i, berval_t, arg_t)) {
             PL_type_error("compound", berval_t);
@@ -452,7 +452,7 @@ int build_BerValue(term_t berval_t, BerValue** berval) {
         }
 
         atom_t arg_name;
-        int arity1;
+        size_t arity1;
         if (!PL_get_compound_name_arity(arg_t, &arg_name, &arity1)) {
             PL_type_error("compound", arg_t);
             goto error;
@@ -513,19 +513,19 @@ int build_BerValue_t(BerValue* berval, term_t berval_t) {
  */
 int build_ldctl_value(term_t ldctl_value_t, LDAPControl* ctrl) {
     atom_t name;
-    int arity;
+    size_t arity;
     if (!PL_get_compound_name_arity(ldctl_value_t, &name, &arity)) {
         return PL_type_error("compound", ldctl_value_t);
     }
 
-    for (int i = 1; i <= arity; ++i) {
+    for (size_t i = 1; i <= arity; ++i) {
         term_t arg_t = PL_new_term_ref();
         if (!PL_get_arg(i, ldctl_value_t, arg_t)) {
             return PL_type_error("compound", ldctl_value_t);
         }
 
         atom_t arg_name;
-        int arity1;
+        size_t arity1;
         if (!PL_get_compound_name_arity(arg_t, &arg_name, &arity1)) {
             return PL_type_error("compound", arg_t);
         }
@@ -570,7 +570,7 @@ int build_LDAPControl(term_t ctrl_t, LDAPControl** ctrl) {
     memset(_ctrl, 0, sizeof (LDAPControl));
 
     atom_t name;
-    int arity;
+    size_t arity;
     if (!PL_get_compound_name_arity(ctrl_t, &name, &arity)) {
         PL_type_error("compound", ctrl_t);
         goto error;
@@ -581,7 +581,7 @@ int build_LDAPControl(term_t ctrl_t, LDAPControl** ctrl) {
         goto error;
     }
 
-    for (int i = 1; i <= arity; ++i) {
+    for (size_t i = 1; i <= arity; ++i) {
         term_t arg_t = PL_new_term_ref();
         if (!PL_get_arg(i, ctrl_t, arg_t)) {
             PL_type_error("compound", ctrl_t);
@@ -589,7 +589,7 @@ int build_LDAPControl(term_t ctrl_t, LDAPControl** ctrl) {
         }
 
         atom_t arg_name;
-        int arity1;
+        size_t arity1;
         if (!PL_get_compound_name_arity(arg_t, &arg_name, &arity1)) {
             PL_type_error("compound", arg_t);
             goto error;
@@ -724,13 +724,13 @@ int build_timeval(term_t timeval_t, TimeVal** timeval) {
     memset(_timeval, 0, sizeof (TimeVal));
 
     atom_t name;
-    int arity;
+    size_t arity;
     if (!PL_get_compound_name_arity(timeval_t, &name, &arity)) {
         PL_type_error("compound", timeval_t);
         goto error;
     }
 
-    for (int i = 1; i <= arity; ++i) {
+    for (size_t i = 1; i <= arity; ++i) {
         term_t arg_t = PL_new_term_ref();
         if (!PL_get_arg(i, timeval_t, arg_t)) {
             PL_type_error("compound", timeval_t);
@@ -738,7 +738,7 @@ int build_timeval(term_t timeval_t, TimeVal** timeval) {
         }
 
         atom_t arg_name;
-        int arity1;
+        size_t arity1;
         if (!PL_get_compound_name_arity(arg_t, &arg_name, &arity1)) {
             PL_type_error("compound", arg_t);
             goto error;
@@ -836,7 +836,7 @@ int build_chars_t_array(char** array, term_t array_t) {
  */
 int build_query_conditions(term_t query_t, char** base, int* scope, char** filter, char*** attrs, int* attrsonly) {
     atom_t name;
-    int arity;
+    size_t arity;
     if (!PL_get_compound_name_arity(query_t, &name, &arity)) {
         PL_type_error("compound", query_t);
         goto error;
@@ -849,7 +849,7 @@ int build_query_conditions(term_t query_t, char** base, int* scope, char** filte
 
     char** _attrs = NULL;
 
-    for (int i = 1; i <= arity; ++i) {
+    for (size_t i = 1; i <= arity; ++i) {
         term_t arg_t = PL_new_term_ref();
         if (!PL_get_arg(i, query_t, arg_t)) {
             PL_type_error("compound", query_t);
@@ -857,7 +857,7 @@ int build_query_conditions(term_t query_t, char** base, int* scope, char** filte
         }
 
         atom_t arg_name;
-        int arity1;
+        size_t arity1;
         if (!PL_get_compound_name_arity(arg_t, &arg_name, &arity1)) {
             PL_type_error("compound", arg_t);
             goto error;
@@ -1060,7 +1060,7 @@ int build_LDAPMod(term_t ldapmod_t, LDAPMod** ldapmod) {
     memset(_ldapmod, 0, sizeof (LDAPMod));
 
     atom_t name;
-    int arity;
+    size_t arity;
     if (!PL_get_compound_name_arity(ldapmod_t, &name, &arity)) {
         PL_type_error("compound", ldapmod_t);
         goto error;
@@ -1071,7 +1071,7 @@ int build_LDAPMod(term_t ldapmod_t, LDAPMod** ldapmod) {
         goto error;
     }
 
-    for (int i = 1; i <= arity; ++i) {
+    for (size_t i = 1; i <= arity; ++i) {
         term_t arg_t = PL_new_term_ref();
         if (!PL_get_arg(i, ldapmod_t, arg_t)) {
             PL_type_error("compound", ldapmod_t);
@@ -1079,7 +1079,7 @@ int build_LDAPMod(term_t ldapmod_t, LDAPMod** ldapmod) {
         }
 
         atom_t arg_name;
-        int arity1;
+        size_t arity1;
         if (!PL_get_compound_name_arity(arg_t, &arg_name, &arity1)) {
             PL_type_error("compound", arg_t);
             goto error;
